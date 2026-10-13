@@ -1,0 +1,24 @@
+# Rebuilt inside the image
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Never part of the image
+.git
+.gitignore
+.env*
+.vercel
+.DS_Store
+npm-debug.log*
+
+# Docs and tooling that the build does not read
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+docs
+.claude
