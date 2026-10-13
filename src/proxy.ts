@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { authPageHref, isAuthPage, LOGIN_PATH, safeNextPath, SESSION_COOKIE } from "@/lib/auth/paths";
+import {
+  authPageHref,
+  isAuthPage,
+  isProtectedPath,
+  LOGIN_PATH,
+  safeNextPath,
+  SESSION_COOKIE,
+} from "@/lib/auth/paths";
 
 /**
  * Optimistic route guard (Next 16 "proxy", formerly middleware). It only checks that the
@@ -18,14 +25,14 @@ export function proxy(request: NextRequest) {
       : NextResponse.next();
   }
 
-  if (!hasSession) {
+  if (!hasSession && isProtectedPath(pathname)) {
     return NextResponse.redirect(new URL(authPageHref(LOGIN_PATH, `${pathname}${search}`), request.url));
   }
   return NextResponse.next();
 }
 
 export const config = {
-  // App routes + auth pages only. `/api/*` is deliberately excluded: the API authenticates
-  // itself, and running the proxy would make Next buffer upload bodies.
+  // App routes (PROTECTED_PREFIXES) + auth pages only. `/api/*` is deliberately excluded:
+  // the API authenticates itself, and running the proxy would make Next buffer upload bodies.
   matcher: ["/cvs/:path*", "/login", "/signup"],
 };

@@ -24,8 +24,9 @@ export const CSRF_HEADER = { name: "X-Requested-With", value: "XMLHttpRequest" }
 
 const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your connection and try again.";
 
+// DOMException is not an `Error` subclass in every runtime, so check the name structurally.
 function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
 }
 
 function fallbackMessage(status: number): string {
