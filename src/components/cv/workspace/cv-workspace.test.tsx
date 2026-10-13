@@ -17,7 +17,30 @@ import type { ReadyCv } from "@/lib/cv/ready-cv";
 
 import { CvWorkspace } from "./cv-workspace";
 
-vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(window.location.search) }));
+// Like Next, useSearchParams follows history.replaceState (the phone tabs live in ?tab=).
+vi.mock("next/navigation", async () => {
+  const { useSyncExternalStore } = await import("react");
+  const listeners = new Set<() => void>();
+  const replaceState = window.history.replaceState.bind(window.history);
+  window.history.replaceState = (...args: Parameters<History["replaceState"]>) => {
+    replaceState(...args);
+    listeners.forEach((listener) => listener());
+  };
+  const subscribe = (listener: () => void) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  return {
+    useSearchParams: () =>
+      new URLSearchParams(
+        useSyncExternalStore(
+          subscribe,
+          () => window.location.search,
+          () => "",
+        ),
+      ),
+  };
+});
 vi.mock("@/lib/utils/save-file", () => ({ saveFile: vi.fn() }));
 
 let queryClient: QueryClient;
