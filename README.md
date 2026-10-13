@@ -83,7 +83,8 @@ Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks.
   retry with backoff. On `VERSION_CONFLICT` (the CV changed on another device) the latest
   version is loaded and local edits are re-applied per contact field or section where they
   don't overlap (a three-way merge); overlapping parts go to the server copy and a toast says
-  which. Leaving the page with unsaved edits asks first.
+  which. Pending edits are sent right away when the tab is hidden or the editor is left, and
+  closing or reloading the tab with unsaved edits asks first.
 - **Read-only while the AI works.** Answering a question queues a job that rewrites part of
   the CV; until it finishes the API answers `409 CV_BUSY` to edits, and the editor is disabled
   (pending edits are saved before the answer is sent). This removes the race between manual
