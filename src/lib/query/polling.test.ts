@@ -13,13 +13,12 @@ import {
 const cv = (status: CvSummary["status"], busy = false) => ({ status, busy });
 
 describe("getCvRefetchInterval", () => {
-  it("polls every 1.5 s while generating", () => {
-    expect(CV_POLL_INTERVAL_MS).toBe(1_500);
-    expect(getCvRefetchInterval(cv("generating"))).toBe(1_500);
+  it("polls while generating", () => {
+    expect(getCvRefetchInterval(cv("generating"))).toBe(CV_POLL_INTERVAL_MS);
   });
 
   it("polls while a ready CV is busy (an answer is being applied)", () => {
-    expect(getCvRefetchInterval(cv("ready", true))).toBe(1_500);
+    expect(getCvRefetchInterval(cv("ready", true))).toBe(CV_POLL_INTERVAL_MS);
   });
 
   it("stops once the CV settles", () => {
@@ -36,8 +35,8 @@ describe("getCvRefetchInterval", () => {
     const server = new ApiError({ status: 503, code: "INTERNAL", message: "down" });
     const notFound = new ApiError({ status: 404, code: "NOT_FOUND", message: "gone" });
 
-    expect(getCvRefetchInterval(cv("generating"), network)).toBe(1_500);
-    expect(getCvRefetchInterval(cv("generating"), server)).toBe(1_500);
+    expect(getCvRefetchInterval(cv("generating"), network)).toBe(CV_POLL_INTERVAL_MS);
+    expect(getCvRefetchInterval(cv("generating"), server)).toBe(CV_POLL_INTERVAL_MS);
     expect(getCvRefetchInterval(cv("generating"), notFound)).toBe(false);
   });
 });

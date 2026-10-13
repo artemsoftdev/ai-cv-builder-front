@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 
 import { cvsApi } from "@/lib/api/endpoints";
 import { isApiError } from "@/lib/api/errors";
@@ -79,6 +80,7 @@ const deleteCvMutationKey = ["cvs", "delete"] as const;
 // Optimistic removal, restored at the same position on failure; 404 counts as success.
 export function useDeleteCv() {
   const queryClient = useQueryClient();
+  const resync = useRef<ReturnType<typeof setTimeout>>(undefined);
   return useMutation({
     mutationKey: deleteCvMutationKey,
     mutationFn: async (cvId: string) => {
@@ -108,11 +110,13 @@ export function useDeleteCv() {
     onSuccess: (_data, cvId) => {
       queryClient.removeQueries({ queryKey: queryKeys.cv(cvId) });
     },
-    onSettled: async () => {
-      // Resync once, after the last of several parallel deletes.
-      if (queryClient.isMutating({ mutationKey: deleteCvMutationKey }) === 1) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.cvs });
-      }
+    onSettled: () => {
+      // Resync once the last of several parallel deletes is done; this one only stops counting after onSettled.
+      clearTimeout(resync.current);
+      resync.current = setTimeout(() => {
+        if (queryClient.isMutating({ mutationKey: deleteCvMutationKey }) > 0) return;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.cvs });
+      }, 0);
     },
   });
 }
