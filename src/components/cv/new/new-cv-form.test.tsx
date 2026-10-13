@@ -1,0 +1,116 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createQueryClient } from "@/lib/query/query-client";
+import { errorResponse, fetchCall, jsonResponse, mockFetch } from "@/test/http";
+
+import { NewCvForm } from "./new-cv-form";
+
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
+
+function renderForm() {
+  const user = userEvent.setup({ applyAccept: false });
+  render(
+    <QueryClientProvider client={createQueryClient({ onUnauthorized: vi.fn() })}>
+      <NewCvForm />
+    </QueryClientProvider>,
+  );
+  return {
+    user,
+    fileInput: () => screen.getByLabelText(/CV file \(PDF\)/),
+    roleInput: () => screen.getByLabelText("Target role"),
+    submit: () => screen.getByRole("button", { name: /Generate my CV/ }),
+  };
+}
+
+const pdf = (name = "cv.pdf", size = 2_000) => new File([new Uint8Array(size)], name, { type: "application/pdf" });
+
+beforeEach(() => {
+  router.push.mockReset();
+});
+
+describe("NewCvForm validation", () => {
+  it("asks for a file and a role without calling the API", async () => {
+    const fetchMock = mockFetch();
+    const { user, submit } = renderForm();
+
+    await user.click(submit());
+
+    expect(await screen.findByText("Choose your CV as a PDF file")).toBeInTheDocument();
+    expect(screen.getByText("Enter the role you are applying for")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("explains a wrong file type as soon as it is picked", async () => {
+    mockFetch();
+    const { user, fileInput } = renderForm();
+
+    await user.upload(fileInput(), new File(["x"], "cv.docx", { type: "application/msword" }));
+
+    expect(await screen.findByText(/Choose a PDF file/)).toBeInTheDocument();
+    expect(fileInput()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("requires at least 50 characters of pasted text", async () => {
+    mockFetch();
+    const { user, roleInput, submit } = renderForm();
+
+    await user.click(screen.getByRole("tab", { name: /Paste text/ }));
+    await user.type(screen.getByLabelText("CV text"), "Too short");
+    await user.type(roleInput(), "Data Analyst");
+    await user.click(submit());
+
+    expect(await screen.findByText(/Paste at least 50 characters/)).toBeInTheDocument();
+    expect(screen.getByText(/9 \/ 20,000 characters/)).toBeInTheDocument();
+  });
+});
+
+describe("NewCvForm submit", () => {
+  it("uploads the PDF with the chosen role and opens the new CV", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockResolvedValue(jsonResponse({ cv: { id: "cv-1", status: "generating" } }, { status: 202 }));
+    const { user, fileInput, roleInput, submit } = renderForm();
+
+    await user.upload(fileInput(), pdf("jane.pdf"));
+    await user.click(screen.getByRole("button", { name: "Product Manager" }));
+    expect(roleInput()).toHaveValue("Product Manager");
+    await user.click(submit());
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/cvs/cv-1"));
+    const { url, init } = fetchCall(fetchMock);
+    expect(url).toBe("/api/cvs");
+    const body = init.body as FormData;
+    expect(body.get("targetRole")).toBe("Product Manager");
+    expect((body.get("file") as File).name).toBe("jane.pdf");
+    expect(body.has("text")).toBe(false);
+  });
+
+  it("shows FILE_TOO_LARGE on the file field", async () => {
+    mockFetch().mockResolvedValue(errorResponse(413, "FILE_TOO_LARGE", "File too large"));
+    const { user, fileInput, roleInput, submit } = renderForm();
+
+    await user.upload(fileInput(), pdf());
+    await user.type(roleInput(), "Engineer");
+    await user.click(submit());
+
+    expect(await screen.findByText(/This PDF is larger than 5 MB/)).toBeInTheDocument();
+    expect(fileInput()).toHaveAttribute("aria-invalid", "true");
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("explains rate limiting at form level", async () => {
+    mockFetch().mockResolvedValue(
+      errorResponse(429, "RATE_LIMITED", "Too many requests", undefined, { "Retry-After": "120" }),
+    );
+    const { user, fileInput, roleInput, submit } = renderForm();
+
+    await user.upload(fileInput(), pdf());
+    await user.type(roleInput(), "Engineer");
+    await user.click(submit());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/at most 3 generating at the same time.*2 minutes/);
+  });
+});

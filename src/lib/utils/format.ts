@@ -41,3 +41,21 @@ export function formatDuration(totalSeconds: number): string {
   const hours = Math.ceil(minutes / 60);
   return hours === 1 ? "1 hour" : `${hours} hours`;
 }
+
+/** "820 KB", "4.2 MB" (file pickers, upload limits). */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  const mb = kb / 1024;
+  return `${mb < 10 ? Math.round(mb * 10) / 10 : Math.round(mb)} MB`;
+}
+
+/** Stopwatch style "0:42", "3:05", "1:02:09". */
+export function formatElapsed(totalMs: number): string {
+  const totalSeconds = Math.max(0, Math.floor(totalMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
+}
