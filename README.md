@@ -31,13 +31,14 @@ API_INTERNAL_URL=http://localhost:4000 npm run dev   # http://localhost:3000
 is baked into the build, so the Docker image takes it as a build argument (`http://api:4000` in
 compose). See [.env.example](.env.example).
 
-| Script                    | What it does                                               |
-| ------------------------- | ---------------------------------------------------------- |
-| `npm run dev`             | dev server (Turbopack)                                     |
-| `npm run build` / `start` | production build (`output: "standalone"`) / serve it       |
-| `npm run typecheck`       | `next typegen && tsc --noEmit` (route types are generated) |
-| `npm run lint`            | ESLint (Next, TypeScript, React Hooks/Compiler, Query)     |
-| `npm test`                | Vitest + Testing Library (jsdom)                           |
+| Script                            | What it does                                               |
+| --------------------------------- | ---------------------------------------------------------- |
+| `npm run dev`                     | dev server (Turbopack)                                     |
+| `npm run build` / `start`         | production build (`output: "standalone"`) / serve it       |
+| `npm run typecheck`               | `next typegen && tsc --noEmit` (route types are generated) |
+| `npm run lint`                    | ESLint (Next, TypeScript, React Hooks/Compiler, Query)     |
+| `npm run format` / `format:check` | Prettier (CI runs the check)                               |
+| `npm test`                        | Vitest + Testing Library (jsdom)                           |
 
 ## Layout
 
@@ -62,7 +63,8 @@ src/
     auth/, forms/, hooks/, utils/, validation/
 ```
 
-Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks.
+Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks and
+`src/test/fixtures.ts` builds CVs and questions.
 
 ## Design decisions
 
@@ -83,8 +85,18 @@ Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks.
   retry with backoff. On `VERSION_CONFLICT` (the CV changed on another device) the latest
   version is loaded and local edits are re-applied per contact field or section where they
   don't overlap (a three-way merge); overlapping parts go to the server copy and a toast says
-  which. Pending edits are sent right away when the tab is hidden or the editor is left, and
-  closing or reloading the tab with unsaved edits asks first.
+  which. Pending edits are sent right away, as `keepalive` requests, when the tab is hidden, the
+  page is unloaded or the editor is left; closing the tab with unsaved edits asks first, and
+  in-app links ask while edits can't be saved. A save the API rejects says why and points at
+  the field.
+- **Per-tab drafts.** Unsaved editor content, typed answers and pasted CV text are mirrored to
+  `sessionStorage` until the server has them. A reload, a phone discarding the tab or a
+  re-login after the session expired restores them (CV edits are re-applied on top of the
+  latest version with the same merge). `sessionStorage` rather than `localStorage`, so they
+  die with the tab; they are also cleared on logout and when another account signs in.
+- **Requests always end.** Every request has a deadline (30 s, uploads 120 s, PDF 60 s); a
+  timeout counts as a network error, so autosave retries instead of hanging on a stalled
+  mobile connection.
 - **Read-only while the AI works.** Answering a question queues a job that rewrites part of
   the CV; until it finishes the API answers `409 CV_BUSY` to edits, and the editor is disabled
   (pending edits are saved before the answer is sent). This removes the race between manual
@@ -92,8 +104,29 @@ Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks.
 - **Untrusted content.** Everything from the API (including Claude's output) is rendered as
   React text, never as HTML, and CV links are never turned into anchors in the app (the PDF
   makes them clickable; the API only accepts http, https and mailto). Error bodies are
-  validated with zod before use.
-- **Preview = PDF.** The live preview reuses the API's rules for what is printed and its
-  react-pdf styles converted from points to pixels, so the download looks like the preview.
+  validated with zod before use. Pages send a Content-Security-Policy as a second line of
+  defence, and `?next=` redirects only accept same-origin paths (checked after URL
+  normalisation).
+- **Preview close to the PDF.** The live preview reuses the API's rules for what is printed and
+  its react-pdf styles converted from points to pixels, so the download looks like the
+  preview. Page breaks are an estimate: the PDF also keeps bullets and entry headings whole.
 - **Phones.** Below 1024 px the CV page uses Edit / Preview / Questions tabs (kept in
   `?tab=`) and a bottom bar with save status and download; inputs are 16 px to avoid iOS zoom.
+
+## Trade-offs and limits
+
+- **The conflict merge** (per contact field or section, server wins on overlap) is more than a
+  single-owner CV strictly needs: real conflicts only happen with two devices open, since the
+  API blocks edits while Claude works. It stays because the alternative, "server wins", drops
+  everything typed on the other device, and the same merge re-applies restored drafts. It is
+  covered by unit tests (`merge-content`) and lifecycle tests (`use-cv-autosave`).
+- **CSP without nonces.** Nonces would force every page to render dynamically, so inline
+  scripts stay allowed; the policy still blocks other origins, plugins, framing and foreign
+  form targets.
+- **Elapsed time of a retried generation** is measured from the retry on the device that
+  retried it; elsewhere it counts from the CV's creation, because the API does not expose when
+  the current run started.
+- **Skipping a question** is sent a few seconds later, when its Undo toast closes: the API
+  cannot reopen a dismissed question.
+- **Not covered by unit tests:** real layout (sticky bars, wrapping on phones), native
+  `<dialog>` behaviour and the real API; those need browser end-to-end tests.

@@ -4,6 +4,8 @@ node_modules
 out
 build
 coverage
+test-results
+playwright-report
 *.tsbuildinfo
 next-env.d.ts
 
@@ -22,3 +24,4 @@ README.md
 AGENTS.md
 docs
 .claude
+.github
