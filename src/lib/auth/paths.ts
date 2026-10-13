@@ -7,6 +7,7 @@
 export const SESSION_COOKIE = "cvb_session";
 
 export const HOME_PATH = "/cvs";
+export const NEW_CV_PATH = "/cvs/new";
 export const LOGIN_PATH = "/login";
 export const SIGNUP_PATH = "/signup";
 export const AUTH_PAGES: readonly string[] = [LOGIN_PATH, SIGNUP_PATH];

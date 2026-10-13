@@ -13,11 +13,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/error-messages";
 import type { CvSummary } from "@/lib/api/types";
+import { NEW_CV_PATH } from "@/lib/auth/paths";
 import { useCvs, useDeleteCv } from "@/lib/query/cv-hooks";
 
 import { CvCard } from "./cv-card";
-
-const NEW_CV_PATH = "/cvs/new";
 
 export function CvListView() {
   const cvs = useCvs();

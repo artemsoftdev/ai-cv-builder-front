@@ -43,3 +43,18 @@ export function describeJobError(code: string | null | undefined): string {
   if (code && Object.hasOwn(JOB_ERROR_MESSAGES, code)) return JOB_ERROR_MESSAGES[code as JobErrorCode];
   return JOB_ERROR_MESSAGES.INTERNAL;
 }
+
+/** Retrying the same source cannot help: the user has to start again with another one. */
+export function isRetryableJobError(code: string | null | undefined): boolean {
+  return code !== "SOURCE_UNREADABLE";
+}
+
+/**
+ * `RATE_LIMITED` when starting a generation. Creating a CV and retrying a failed one share one
+ * budget (docs/API.md): 10 starts per hour, at most 3 CVs generating at the same time.
+ */
+export function describeGenerationLimit(error: unknown): string {
+  const retryAfter = error instanceof ApiError ? error.retryAfterSeconds : undefined;
+  const wait = retryAfter ? ` You can try again in ${formatDuration(retryAfter)}.` : " Please try again later.";
+  return `You can start up to 10 CV generations per hour (retries included), with at most 3 running at the same time.${wait}`;
+}

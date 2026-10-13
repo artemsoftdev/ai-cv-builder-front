@@ -14,13 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { panelId, SegmentedTabs, tabId } from "@/components/ui/segmented-tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { getErrorMessage } from "@/lib/api/error-messages";
+import { describeGenerationLimit, getErrorMessage } from "@/lib/api/error-messages";
 import { isApiError } from "@/lib/api/errors";
 import { API_LIMITS } from "@/lib/api/types";
 import { applyServerError, SERVER_ERROR } from "@/lib/forms/apply-server-error";
 import { useCreateCv } from "@/lib/query/cv-hooks";
 import { cn } from "@/lib/utils/cn";
-import { formatDuration } from "@/lib/utils/format";
 import {
   newCvSchema,
   sourceTextLength,
@@ -55,13 +54,13 @@ function showCreateError(error: unknown, source: SourceMode, setError: UseFormSe
     });
   } else if (isApiError(error, "UNPROCESSABLE_SOURCE")) {
     // The API explains what is wrong (encrypted, too many pages, too short, ...).
-    setError(source === "pdf" ? "file" : "text", { type: "server", message: getErrorMessage(error) });
-  } else if (isApiError(error, "RATE_LIMITED")) {
-    const wait = error.retryAfterSeconds ? ` You can try again in ${formatDuration(error.retryAfterSeconds)}.` : "";
-    setError(SERVER_ERROR, {
+    const message = getErrorMessage(error);
+    setError(source === "pdf" ? "file" : "text", {
       type: "server",
-      message: `You can create up to 10 CVs per hour, with at most 3 generating at the same time.${wait}`,
+      message: source === "pdf" ? `${message} Try another export, or paste the text instead.` : message,
     });
+  } else if (isApiError(error, "RATE_LIMITED")) {
+    setError(SERVER_ERROR, { type: "server", message: describeGenerationLimit(error) });
   } else {
     applyServerError(error, setError, ["targetRole", "text", "file"]);
   }

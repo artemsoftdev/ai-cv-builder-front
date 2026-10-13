@@ -1,14 +1,15 @@
 "use client";
 
-import { RotateCcw, TriangleAlert } from "lucide-react";
+import { FilePlus2, RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { describeJobError, getErrorMessage } from "@/lib/api/error-messages";
+import { describeGenerationLimit, describeJobError, getErrorMessage, isRetryableJobError } from "@/lib/api/error-messages";
+import { isApiError } from "@/lib/api/errors";
 import type { Cv } from "@/lib/api/types";
-import { HOME_PATH } from "@/lib/auth/paths";
+import { HOME_PATH, NEW_CV_PATH } from "@/lib/auth/paths";
 import { useFocusOnMount } from "@/lib/hooks/use-focus-on-mount";
 import { useRetryCv } from "@/lib/query/cv-hooks";
 
@@ -27,13 +28,18 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
   const retry = useRetryCv(cv.id);
 
   const explanation = describeJobError(cv.error?.code);
+  // An unreadable source fails the same way again: offer a fresh start instead.
+  const retryable = isRetryableJobError(cv.error?.code);
   // The server message adds specifics (e.g. which limit was hit); skip it when it says the same.
   const details = cv.error?.message && cv.error.message !== explanation ? cv.error.message : null;
 
   const handleRetry = () => {
     retry.mutate(undefined, {
       onSuccess: () => onRetried?.(),
-      onError: (error) => toast.error("Couldn't restart the generation", { description: getErrorMessage(error) }),
+      onError: (error) =>
+        toast.error("Couldn't restart the generation", {
+          description: isApiError(error, "RATE_LIMITED") ? describeGenerationLimit(error) : getErrorMessage(error),
+        }),
     });
   };
 
@@ -63,13 +69,20 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
           <Link href={HOME_PATH} className={buttonVariants({ variant: "secondary" })}>
             Back to your CVs
           </Link>
-          <Button
-            onClick={handleRetry}
-            loading={retry.isPending || retry.isSuccess}
-            leftIcon={<RotateCcw aria-hidden="true" className="size-4" />}
-          >
-            Try again
-          </Button>
+          {retryable ? (
+            <Button
+              onClick={handleRetry}
+              loading={retry.isPending || retry.isSuccess}
+              leftIcon={<RotateCcw aria-hidden="true" className="size-4" />}
+            >
+              Try again
+            </Button>
+          ) : (
+            <Link href={NEW_CV_PATH} className={buttonVariants()}>
+              <FilePlus2 aria-hidden="true" className="size-4" />
+              Start with another source
+            </Link>
+          )}
         </div>
       </div>
     </CvPageShell>
