@@ -32,7 +32,12 @@ export function Badge({ tone = "neutral", dot = false, pulse = false, className,
       {dot && (
         <span aria-hidden="true" className="relative flex size-1.5">
           {pulse && (
-            <span className={cn("absolute inline-flex size-full rounded-full opacity-70 motion-safe:animate-ping", style.dot)} />
+            <span
+              className={cn(
+                "absolute inline-flex size-full rounded-full opacity-70 motion-safe:animate-ping",
+                style.dot,
+              )}
+            />
           )}
           <span className={cn("relative inline-flex size-1.5 rounded-full", style.dot)} />
         </span>

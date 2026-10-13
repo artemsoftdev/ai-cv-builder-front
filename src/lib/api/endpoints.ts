@@ -27,8 +27,7 @@ export const authApi = {
 
   logout: (): Promise<void> => apiFetch<void>("/api/auth/logout", { method: "POST" }),
 
-  me: async (signal?: AbortSignal): Promise<User> =>
-    (await apiFetch<UserResponse>("/api/auth/me", { signal })).user,
+  me: async (signal?: AbortSignal): Promise<User> => (await apiFetch<UserResponse>("/api/auth/me", { signal })).user,
 };
 
 export function toCreateCvFormData(input: CreateCvInput): FormData {

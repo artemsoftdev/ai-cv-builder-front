@@ -8,8 +8,12 @@ import { describeQuestionTarget } from "./question-target";
 const content = {
   contact: { fullName: "", headline: "", email: "", phone: "", location: "", links: [] },
   summary: "",
-  experience: [{ id: "e1", company: "Acme Corp", title: "Engineer", location: "", startDate: "", endDate: "", bullets: [] }],
-  education: [{ id: "ed1", institution: "", degree: "BSc Physics", location: "", startDate: "", endDate: "", details: "" }],
+  experience: [
+    { id: "e1", company: "Acme Corp", title: "Engineer", location: "", startDate: "", endDate: "", bullets: [] },
+  ],
+  education: [
+    { id: "ed1", institution: "", degree: "BSc Physics", location: "", startDate: "", endDate: "", details: "" },
+  ],
   skills: [],
 } satisfies CvContent;
 

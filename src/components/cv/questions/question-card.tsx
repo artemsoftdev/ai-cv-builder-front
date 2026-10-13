@@ -190,7 +190,10 @@ export function QuestionCard(props: QuestionCardProps) {
             )}
             <p
               id={counterId}
-              className={cn("text-right text-xs tabular-nums", length > ANSWER_MAX ? "text-danger-soft-fg" : "text-fg-subtle")}
+              className={cn(
+                "text-right text-xs tabular-nums",
+                length > ANSWER_MAX ? "text-danger-soft-fg" : "text-fg-subtle",
+              )}
             >
               {length.toLocaleString("en")} / {ANSWER_MAX.toLocaleString("en")}
             </p>

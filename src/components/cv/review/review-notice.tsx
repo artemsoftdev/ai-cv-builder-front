@@ -22,9 +22,16 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export function describeRemovedField(field: string): string {
-  const known = FIELD_LABELS[field] ?? FIELD_LABELS[field.split(".").slice(0, 2).join(".")] ?? FIELD_LABELS[field.split(".")[0] ?? ""];
+  const known =
+    FIELD_LABELS[field] ??
+    FIELD_LABELS[field.split(".").slice(0, 2).join(".")] ??
+    FIELD_LABELS[field.split(".")[0] ?? ""];
   if (known) return known;
-  const last = field.split(".").filter((part) => !/^\d+$/.test(part)).at(-1) ?? field;
+  const last =
+    field
+      .split(".")
+      .filter((part) => !/^\d+$/.test(part))
+      .at(-1) ?? field;
   return last.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (char) => char.toUpperCase());
 }
 

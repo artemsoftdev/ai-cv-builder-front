@@ -25,7 +25,9 @@ function renderFailed(cv: Cv, onRetried = vi.fn()) {
 describe("GenerationFailed", () => {
   it("shows the API's message once and retries a transient failure", async () => {
     const fetchMock = mockFetch();
-    fetchMock.mockResolvedValue(jsonResponse({ cv: { ...failedCv("LLM_UNAVAILABLE"), status: "generating" } }, { status: 202 }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ cv: { ...failedCv("LLM_UNAVAILABLE"), status: "generating" } }, { status: 202 }),
+    );
     const { onRetried } = renderFailed(
       failedCv("LLM_UNAVAILABLE", "The AI service is unavailable right now. Please try again in a few minutes."),
     );
@@ -42,7 +44,10 @@ describe("GenerationFailed", () => {
 
   it("trusts the API's specific message over the generic text for its code", () => {
     renderFailed(
-      failedCv("LLM_NOT_CONFIGURED", "AI generation is not configured correctly on the server (the API key was rejected)."),
+      failedCv(
+        "LLM_NOT_CONFIGURED",
+        "AI generation is not configured correctly on the server (the API key was rejected).",
+      ),
     );
 
     expect(screen.getByText(/the API key was rejected/)).toBeInTheDocument();

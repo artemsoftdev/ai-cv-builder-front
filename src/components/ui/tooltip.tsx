@@ -71,7 +71,12 @@ export function Tooltip({ content, children, side = "top", align = "center", cla
       {children}
       <AnimatePresence>
         {open && (
-          <span key="tooltip" ref={outerRef} aria-hidden="true" className={cn(floatingOuterClasses(side, align), "pointer-events-none")}>
+          <span
+            key="tooltip"
+            ref={outerRef}
+            aria-hidden="true"
+            className={cn(floatingOuterClasses(side, align), "pointer-events-none")}
+          >
             <motion.span
               ref={innerRef}
               {...floatingMotion(side)}

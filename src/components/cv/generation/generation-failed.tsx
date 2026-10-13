@@ -6,7 +6,12 @@ import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { describeGenerationLimit, describeJobError, getErrorMessage, isRetryableJobError } from "@/lib/api/error-messages";
+import {
+  describeGenerationLimit,
+  describeJobError,
+  getErrorMessage,
+  isRetryableJobError,
+} from "@/lib/api/error-messages";
 import { isApiError } from "@/lib/api/errors";
 import type { Cv } from "@/lib/api/types";
 import { HOME_PATH, NEW_CV_PATH } from "@/lib/auth/paths";
@@ -50,7 +55,11 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
         >
           <TriangleAlert className="size-5" />
         </span>
-        <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-xl font-semibold tracking-tight outline-none sm:text-2xl">
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="mt-4 text-xl font-semibold tracking-tight outline-none sm:text-2xl"
+        >
           We couldn&apos;t create this CV
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-fg-muted">{explanation}</p>

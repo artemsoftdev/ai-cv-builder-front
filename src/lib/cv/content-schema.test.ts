@@ -51,7 +51,9 @@ describe("cvContentSchema", () => {
 describe("cvContentSchema ids", () => {
   it("rejects an id used twice anywhere in the document, like the API", () => {
     const value = content();
-    value.education = [{ id: "e1", institution: "MIT", degree: "", location: "", startDate: "", endDate: "", details: "" }];
+    value.education = [
+      { id: "e1", institution: "MIT", degree: "", location: "", startDate: "", endDate: "", details: "" },
+    ];
     value.experience[0]!.bullets.push({ id: "b1", text: "Copy" });
     expect(issuePaths(value)).toEqual(["experience.0.bullets.1.id", "education.0.id"]);
   });

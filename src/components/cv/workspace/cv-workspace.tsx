@@ -93,7 +93,9 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
         description: `Your edits to ${describeUnits(dropped)} were replaced by the newer version.${kept.length > 0 ? " Your other edits were kept." : ""}`,
       });
     } else if (kept.length > 0) {
-      toast.info("This CV was changed elsewhere", { description: "Your edits were kept and saved on top of the newer version." });
+      toast.info("This CV was changed elsewhere", {
+        description: "Your edits were kept and saved on top of the newer version.",
+      });
     } else {
       toast.info("This CV was changed elsewhere", { description: "Showing the latest version." });
     }
@@ -130,7 +132,12 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   const panelProps = (tab: WorkspaceTab) =>
     isDesktop
       ? {}
-      : { role: "tabpanel", id: panelId(tabsId, tab), "aria-labelledby": tabId(tabsId, tab), hidden: activeTab !== tab };
+      : {
+          role: "tabpanel",
+          id: panelId(tabsId, tab),
+          "aria-labelledby": tabId(tabsId, tab),
+          hidden: activeTab !== tab,
+        };
 
   const changeTab = (tab: WorkspaceTab) => {
     const url = new URL(window.location.href);
@@ -160,13 +167,20 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
 
   const prepareAnswer = async (): Promise<string | null> => {
     const problem = await ensureSaved();
-    if (problem === "invalid") return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
-    if (problem === "unsaved") return "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
+    if (problem === "invalid")
+      return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
+    if (problem === "unsaved")
+      return "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
     return null;
   };
 
   const saveStatus = (
-    <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={autosave.retry} onShowInvalid={showInvalidField} />
+    <SaveStatus
+      state={autosave.state}
+      invalid={autosave.invalid}
+      onRetry={autosave.retry}
+      onShowInvalid={showInvalidField}
+    />
   );
   const downloadButton = (
     <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
@@ -221,12 +235,7 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
             )}
 
             <div {...panelProps("edit")}>
-              <ReviewProvider
-                review={cv.review}
-                dismissed={dismissedFlags}
-                onDismiss={dismissFlags}
-                disabled={cv.busy}
-              >
+              <ReviewProvider review={cv.review} dismissed={dismissedFlags} onDismiss={dismissFlags} disabled={cv.busy}>
                 <div className="space-y-4">
                   {!isDesktop && openQuestions > 0 && (
                     <QuestionsHint

@@ -37,9 +37,7 @@ export function CvPreview({ className }: { className?: string }) {
     <div className={cn("space-y-2", className)}>
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className="text-sm font-semibold text-fg">Preview</h2>
-        <p className="text-xs text-fg-subtle">
-          A4 · {pages === 1 ? "1 page" : `about ${pages} pages`}
-        </p>
+        <p className="text-xs text-fg-subtle">A4 · {pages === 1 ? "1 page" : `about ${pages} pages`}</p>
       </div>
       <div
         ref={frameRef}

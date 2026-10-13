@@ -48,7 +48,9 @@ function apiStub(calls: string[]) {
       return jsonResponse({ cv: makeCv({ version: body.version + 1, content: body.content ?? makeContent() }) });
     }
     if (String(input).endsWith("/pdf")) {
-      return new Response("%PDF", { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="Jane.pdf"' } });
+      return new Response("%PDF", {
+        headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="Jane.pdf"' },
+      });
     }
     return jsonResponse({ cv: makeCv() });
   });
@@ -106,7 +108,11 @@ describe("CvWorkspace", () => {
     const calls: string[] = [];
     apiStub(calls);
     const info = vi.spyOn(toast, "info");
-    writeDraft(CV_ID, { version: 3, base: makeContent(), content: makeContent({ summary: "Unsaved before the reload" }) });
+    writeDraft(CV_ID, {
+      version: 3,
+      base: makeContent(),
+      content: makeContent({ summary: "Unsaved before the reload" }),
+    });
 
     renderWorkspace();
 

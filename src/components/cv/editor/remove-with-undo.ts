@@ -10,7 +10,13 @@ type RemoveWithUndoOptions<T extends { id: string }> = {
   message: string;
 };
 
-export function removeWithUndo<T extends { id: string }>({ index, items, remove, insert, message }: RemoveWithUndoOptions<T>) {
+export function removeWithUndo<T extends { id: string }>({
+  index,
+  items,
+  remove,
+  insert,
+  message,
+}: RemoveWithUndoOptions<T>) {
   const before = items();
   const target = before[index];
   if (!target) return;

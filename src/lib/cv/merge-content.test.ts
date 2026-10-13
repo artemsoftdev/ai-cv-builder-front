@@ -15,7 +15,15 @@ const base = (): CvContent => ({
   },
   summary: "Original summary.",
   experience: [
-    { id: "e1", company: "Acme", title: "Engineer", location: "", startDate: "2021", endDate: "Present", bullets: [{ id: "b1", text: "Built billing." }] },
+    {
+      id: "e1",
+      company: "Acme",
+      title: "Engineer",
+      location: "",
+      startDate: "2021",
+      endDate: "Present",
+      bullets: [{ id: "b1", text: "Built billing." }],
+    },
   ],
   education: [],
   skills: [{ id: "s1", name: "Languages", items: ["Go"] }],
@@ -78,7 +86,15 @@ describe("mergeContent", () => {
   it("merges lists as a whole and never shares objects with its inputs", () => {
     const local = edit((c) => {
       c.experience.reverse();
-      c.experience.push({ id: "e2", company: "Globex", title: "Developer", location: "", startDate: "", endDate: "", bullets: [] });
+      c.experience.push({
+        id: "e2",
+        company: "Globex",
+        title: "Developer",
+        location: "",
+        startDate: "",
+        endDate: "",
+        bullets: [],
+      });
     });
     const remote = base();
 

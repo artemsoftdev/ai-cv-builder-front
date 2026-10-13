@@ -45,7 +45,9 @@ export function CvView({ cvId }: { cvId: string }) {
     setShownStatus(status);
     setStatusChanged(shownStatus !== undefined);
   }
-  const [retryStartedAt, setRetryStartedAt] = useState(() => (typeof window === "undefined" ? null : readRetryStart(cvId)));
+  const [retryStartedAt, setRetryStartedAt] = useState(() =>
+    typeof window === "undefined" ? null : readRetryStart(cvId),
+  );
   const handleRetried = () => {
     const now = Date.now();
     writeRetryStart(cvId, now);
@@ -58,7 +60,9 @@ export function CvView({ cvId }: { cvId: string }) {
 
   useEffect(() => {
     if (statusChanged && status === "ready") {
-      toast.success("Your CV is ready", { description: "Review the highlighted details and answer Claude's questions." });
+      toast.success("Your CV is ready", {
+        description: "Review the highlighted details and answer Claude's questions.",
+      });
     }
   }, [statusChanged, status]);
 
@@ -92,12 +96,5 @@ export function CvView({ cvId }: { cvId: string }) {
   if (cv.status === "failed" || !hasContent(cv)) {
     return <GenerationFailed cv={cv} onRetried={handleRetried} autoFocus={statusChanged} />;
   }
-  return (
-    <CvWorkspace
-      cv={cv}
-      refetch={query.refetch}
-      refetchFailed={query.isRefetchError}
-      autoFocus={statusChanged}
-    />
-  );
+  return <CvWorkspace cv={cv} refetch={query.refetch} refetchFailed={query.isRefetchError} autoFocus={statusChanged} />;
 }

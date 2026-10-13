@@ -54,7 +54,15 @@ describe("toPrintableCv", () => {
       { id: "e3", company: "", title: "", location: "Berlin", startDate: "", endDate: "", bullets: [] },
     ];
     content.education = [
-      { id: "d1", institution: "MIT", degree: "BSc", location: "", startDate: "", endDate: "2014", details: "Thesis\non queues" },
+      {
+        id: "d1",
+        institution: "MIT",
+        degree: "BSc",
+        location: "",
+        startDate: "",
+        endDate: "2014",
+        details: "Thesis\non queues",
+      },
     ];
     content.skills = [
       { id: "s1", name: "Languages", items: ["Go", " ", "SQL"] },
@@ -68,7 +76,12 @@ describe("toPrintableCv", () => {
     expect(cv.experience.map((entry) => entry.id)).toEqual(["e1", "e3"]);
     expect(cv.experience[0]).toMatchObject({ title: "Engineer", subtitle: "Acme", dates: "2021 – Present" });
     expect(cv.experience[0]?.bullets).toEqual([{ id: "b1", text: "Built billing." }]);
-    expect(cv.education[0]).toMatchObject({ title: "BSc", subtitle: "MIT", dates: "2014", details: "Thesis\non queues" });
+    expect(cv.education[0]).toMatchObject({
+      title: "BSc",
+      subtitle: "MIT",
+      dates: "2014",
+      details: "Thesis\non queues",
+    });
     expect(cv.skills).toEqual([{ id: "s1", name: "Languages", items: "Go, SQL" }]);
     expect(isEmptyPrintable(cv)).toBe(false);
   });

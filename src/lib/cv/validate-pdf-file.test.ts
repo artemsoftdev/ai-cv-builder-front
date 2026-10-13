@@ -16,9 +16,11 @@ describe("validatePdfFile", () => {
   });
 
   it("rejects other formats", () => {
-    expect(validatePdfFile(file("cv.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 1_000))).toMatch(
-      /Choose a PDF file/,
-    );
+    expect(
+      validatePdfFile(
+        file("cv.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 1_000),
+      ),
+    ).toMatch(/Choose a PDF file/);
     expect(validatePdfFile(file("photo.png", "image/png", 1_000))).toMatch(/Choose a PDF file/);
   });
 

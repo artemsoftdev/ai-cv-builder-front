@@ -35,7 +35,11 @@ function EducationItemEditor({ index, itemId, actions }: EducationItemEditorProp
   const [degree, institution] = useWatch<CvContent, [`education.${number}.degree`, `education.${number}.institution`]>({
     name: [`education.${index}.degree`, `education.${index}.institution`],
   });
-  const heading = [degree, institution].map((part) => part.trim()).filter(Boolean).join(" · ") || "New education entry";
+  const heading =
+    [degree, institution]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(" · ") || "New education entry";
 
   return (
     <div className="space-y-4">
@@ -47,7 +51,11 @@ function EducationItemEditor({ index, itemId, actions }: EducationItemEditorProp
           placeholder="e.g. BSc Computer Science"
           className="col-span-2 sm:col-span-1"
         />
-        <FormTextField name={`education.${index}.institution`} label="Institution" className="col-span-2 sm:col-span-1" />
+        <FormTextField
+          name={`education.${index}.institution`}
+          label="Institution"
+          className="col-span-2 sm:col-span-1"
+        />
         <FormTextField name={`education.${index}.location`} label="Location" className="col-span-2" />
         <FormTextField name={`education.${index}.startDate`} label="Start" />
         <FormTextField name={`education.${index}.endDate`} label="End" />

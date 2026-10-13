@@ -158,7 +158,8 @@ export function useCvAutosave({
         // Point the API's objections at the fields they are about.
         if (next.status === "error" && isApiError(next.error, "VALIDATION_ERROR")) {
           for (const { path, message } of getValidationIssues(next.error)) {
-            if (path.startsWith("content.")) setError(path.slice("content.".length) as Path<CvContent>, { type: "server", message });
+            if (path.startsWith("content."))
+              setError(path.slice("content.".length) as Path<CvContent>, { type: "server", message });
           }
         }
       },
@@ -236,7 +237,14 @@ export function useCvAutosave({
     // In-app navigation never fires beforeunload: ask when the edits can't be saved right now.
     const onLinkClick = (event: MouseEvent) => {
       if (!invalidRef.current && !UNSAVABLE_STATES.has(queue.state.status)) return;
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
         return;
       }
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;

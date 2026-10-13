@@ -29,7 +29,15 @@ function Harness({ content }: { content: CvContent }) {
 const twoPositions = () =>
   makeContent({
     experience: [
-      { id: "e1", company: "Acme", title: "Engineer", location: "", startDate: "", endDate: "", bullets: [{ id: "b1", text: "Built billing." }] },
+      {
+        id: "e1",
+        company: "Acme",
+        title: "Engineer",
+        location: "",
+        startDate: "",
+        endDate: "",
+        bullets: [{ id: "b1", text: "Built billing." }],
+      },
       { id: "e2", company: "Globex", title: "Developer", location: "", startDate: "", endDate: "", bullets: [] },
     ],
   });
@@ -86,7 +94,9 @@ describe("CvEditor entries", () => {
     await user.click(screen.getByRole("button", { name: "Move down, position Engineer · Acme" }));
 
     expect(values().experience.map((item) => item.id)).toEqual(["e2", "e1"]);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Move up, position Engineer · Acme" })).toHaveFocus());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Move up, position Engineer · Acme" })).toHaveFocus(),
+    );
   });
 });
 

@@ -51,7 +51,11 @@ export function GenerationProgress({ cv, connectionLost, startedAt, autoFocus = 
               <Sparkles className="size-5 motion-safe:animate-pulse" />
             </span>
             <div className="min-w-0">
-              <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-none sm:text-2xl">
+              <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-xl font-semibold tracking-tight outline-none sm:text-2xl"
+              >
                 Creating your CV
               </h1>
               <p className="mt-1 text-sm break-words text-fg-muted">
@@ -109,7 +113,11 @@ const STATE_TEXT = { complete: "done", current: "in progress", upcoming: "not st
 function StepItem({ step, last }: { step: GenerationStep; last: boolean }) {
   const { state } = step;
   return (
-    <motion.li layout="position" aria-current={state === "current" ? "step" : undefined} className="relative flex gap-4">
+    <motion.li
+      layout="position"
+      aria-current={state === "current" ? "step" : undefined}
+      className="relative flex gap-4"
+    >
       {!last && (
         <span
           aria-hidden="true"
@@ -148,12 +156,7 @@ function StepItem({ step, last }: { step: GenerationStep; last: boolean }) {
         </AnimatePresence>
       </span>
       <div className={cn("min-w-0 pt-1", last ? "pb-0" : "pb-6")}>
-        <p
-          className={cn(
-            "text-sm font-medium transition-colors",
-            state === "upcoming" ? "text-fg-subtle" : "text-fg",
-          )}
-        >
+        <p className={cn("text-sm font-medium transition-colors", state === "upcoming" ? "text-fg-subtle" : "text-fg")}>
           {step.label}
           <span className="sr-only"> ({STATE_TEXT[state]})</span>
         </p>

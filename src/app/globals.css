@@ -45,7 +45,9 @@
     0%,
     35% {
       border-color: var(--color-primary);
-      box-shadow: 0 0 0 4px var(--color-ring), var(--shadow-card);
+      box-shadow:
+        0 0 0 4px var(--color-ring),
+        var(--shadow-card);
     }
     100% {
       box-shadow: var(--shadow-card);

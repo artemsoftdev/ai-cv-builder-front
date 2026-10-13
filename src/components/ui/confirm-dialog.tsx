@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  type MouseEvent,
-  type ReactNode,
-  type RefObject,
-  type SyntheticEvent,
-} from "react";
+import { useEffect, useId, useRef, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from "react";
 
 import { Button } from "./button";
 

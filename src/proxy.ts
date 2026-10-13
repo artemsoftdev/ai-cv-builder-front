@@ -1,13 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  authPageHref,
-  isAuthPage,
-  isProtectedPath,
-  LOGIN_PATH,
-  safeNextPath,
-  SESSION_COOKIE,
-} from "@/lib/auth/paths";
+import { authPageHref, isAuthPage, isProtectedPath, LOGIN_PATH, safeNextPath, SESSION_COOKIE } from "@/lib/auth/paths";
 
 // Optimistic guard: only checks that the session cookie exists; the API decides whether it is valid.
 export function proxy(request: NextRequest) {

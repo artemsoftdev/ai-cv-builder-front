@@ -46,7 +46,10 @@ function FlagBadge({ itemId, label }: { itemId: string; label: string }) {
   return (
     <span ref={rootRef} className="inline-flex">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger aria-label={`Check ${label}: ${flags.length === 1 ? "1 warning" : `${flags.length} warnings`}`} className="px-0.5">
+        <PopoverTrigger
+          aria-label={`Check ${label}: ${flags.length === 1 ? "1 warning" : `${flags.length} warnings`}`}
+          className="px-0.5"
+        >
           <span className="inline-flex h-6 items-center gap-1 rounded-full bg-warning-soft px-2 text-xs font-medium text-warning-soft-fg ring-1 ring-warning/30 ring-inset">
             <TriangleAlert aria-hidden="true" className="size-3.5" />
             Check

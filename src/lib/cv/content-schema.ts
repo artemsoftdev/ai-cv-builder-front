@@ -61,7 +61,8 @@ function* itemIds(content: CvContent): Generator<{ id: string; path: (string | n
   for (const [i, link] of content.contact.links.entries()) yield { id: link.id, path: ["contact", "links", i, "id"] };
   for (const [i, item] of content.experience.entries()) {
     yield { id: item.id, path: ["experience", i, "id"] };
-    for (const [j, bullet] of item.bullets.entries()) yield { id: bullet.id, path: ["experience", i, "bullets", j, "id"] };
+    for (const [j, bullet] of item.bullets.entries())
+      yield { id: bullet.id, path: ["experience", i, "bullets", j, "id"] };
   }
   for (const [i, item] of content.education.entries()) yield { id: item.id, path: ["education", i, "id"] };
   for (const [i, group] of content.skills.entries()) yield { id: group.id, path: ["skills", i, "id"] };
@@ -95,8 +96,4 @@ export const cvContentSchema = z
   }) satisfies z.ZodType<CvContent, CvContent>;
 
 export const CV_TITLE_MAX = 120;
-export const cvTitleSchema = z
-  .string()
-  .trim()
-  .min(1, "Give your CV a title")
-  .max(CV_TITLE_MAX, tooLong(CV_TITLE_MAX));
+export const cvTitleSchema = z.string().trim().min(1, "Give your CV a title").max(CV_TITLE_MAX, tooLong(CV_TITLE_MAX));

@@ -160,7 +160,9 @@ describe("useCvAutosave", () => {
 
     setSummary("Rejected by the server");
 
-    await waitFor(() => expect(screen.getByLabelText("Summary error")).toHaveTextContent("Summary is not allowed here"));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Summary error")).toHaveTextContent("Summary is not allowed here"),
+    );
   });
 
   it("loads newer server content (an applied answer) into a clean form", async () => {
@@ -179,7 +181,9 @@ describe("useCvAutosave", () => {
     const fetchMock = mockFetch();
     fetchMock.mockImplementation(async (_input, init) => {
       const body = JSON.parse(String(init?.body)) as { version: number; content: CvContent };
-      return jsonResponse({ cv: makeCv({ version: 2, content: { ...body.content, summary: body.content.summary.trim() } }) });
+      return jsonResponse({
+        cv: makeCv({ version: 2, content: { ...body.content, summary: body.content.summary.trim() } }),
+      });
     });
     const { setSummary, callbacks } = renderEditor();
 
@@ -223,7 +227,10 @@ describe("useCvAutosave", () => {
 
     await waitFor(() => expect(patches).toBe(2));
     await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("saved"));
-    const lastBody = JSON.parse(String(patchCalls(fetchMock).at(-1)?.[1]?.body)) as { version: number; content: CvContent };
+    const lastBody = JSON.parse(String(patchCalls(fetchMock).at(-1)?.[1]?.body)) as {
+      version: number;
+      content: CvContent;
+    };
     expect(lastBody).toMatchObject({ version: 1, content: { summary: "Original summary!" } });
     expect(summary()).toHaveValue("Original summary!");
   });
@@ -296,10 +303,13 @@ describe("useCvAutosave", () => {
 
 describe("useCvAutosave when leaving", () => {
   it.each([
-    ["the tab is hidden", () => {
-      setVisibility("hidden");
-      document.dispatchEvent(new Event("visibilitychange"));
-    }],
+    [
+      "the tab is hidden",
+      () => {
+        setVisibility("hidden");
+        document.dispatchEvent(new Event("visibilitychange"));
+      },
+    ],
     ["the page is unloaded", () => window.dispatchEvent(new Event("pagehide"))],
   ])("sends pending edits right away, with keepalive, when %s", async (_case, leave) => {
     const fetchMock = mockFetch();
@@ -312,7 +322,10 @@ describe("useCvAutosave when leaving", () => {
     await waitFor(() => expect(patchCalls(fetchMock)).toHaveLength(1));
     const [, init] = patchCalls(fetchMock)[0]!;
     expect(init?.keepalive).toBe(true);
-    expect(JSON.parse(String(init?.body))).toMatchObject({ version: 1, content: { summary: "Edited just before leaving" } });
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      version: 1,
+      content: { summary: "Edited just before leaving" },
+    });
   });
 
   it("sends pending edits when the editor unmounts (in-app navigation)", async () => {

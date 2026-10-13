@@ -81,11 +81,7 @@ export function SignupForm({ next }: SignupFormProps) {
         </p>
       )}
 
-      <Field
-        label="Password"
-        error={errors.password?.message}
-        hint={`At least ${API_LIMITS.password.min} characters.`}
-      >
+      <Field label="Password" error={errors.password?.message} hint={`At least ${API_LIMITS.password.min} characters.`}>
         {(control) => <PasswordInput autoComplete="new-password" {...control} {...register("password")} />}
       </Field>
 

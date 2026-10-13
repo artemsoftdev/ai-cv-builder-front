@@ -189,7 +189,11 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
           </button>
           <ul id={resolvedId} hidden={!showResolved} className="divide-y divide-border border-t border-border">
             {resolved.map((question) => (
-              <ResolvedQuestion key={question.id} question={question} target={describeQuestionTarget(question, cv.content)} />
+              <ResolvedQuestion
+                key={question.id}
+                question={question}
+                target={describeQuestionTarget(question, cv.content)}
+              />
             ))}
           </ul>
         </div>

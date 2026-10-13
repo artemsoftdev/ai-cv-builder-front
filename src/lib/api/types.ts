@@ -21,16 +21,10 @@ export type ClientErrorCode = "NETWORK_ERROR";
 
 export type ApiErrorCode = ServerErrorCode | ClientErrorCode;
 
-
 export type ValidationIssue = { path: string; message: string };
 
 export type JobErrorCode =
-  | "SOURCE_UNREADABLE"
-  | "LLM_NOT_CONFIGURED"
-  | "LLM_REFUSED"
-  | "LLM_UNAVAILABLE"
-  | "LLM_INVALID_OUTPUT"
-  | "INTERNAL";
+  "SOURCE_UNREADABLE" | "LLM_NOT_CONFIGURED" | "LLM_REFUSED" | "LLM_UNAVAILABLE" | "LLM_INVALID_OUTPUT" | "INTERNAL";
 
 export type User = { id: string; email: string; createdAt: string };
 
@@ -145,8 +139,7 @@ export type CvSummary = Pick<
 };
 
 export type CreateCvInput =
-  | { targetRole: string; text: string; file?: never }
-  | { targetRole: string; file: File | Blob; text?: never };
+  { targetRole: string; text: string; file?: never } | { targetRole: string; file: File | Blob; text?: never };
 
 export type UpdateCvInput = {
   version: number;
@@ -158,7 +151,6 @@ export type UpdateCvInput = {
 export type UserResponse = { user: User };
 export type CvResponse = { cv: Cv };
 export type CvListResponse = { items: CvSummary[] };
-
 
 export const API_LIMITS = {
   password: { min: 8, max: 128 },

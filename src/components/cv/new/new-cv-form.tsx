@@ -267,7 +267,9 @@ export function NewCvForm() {
                 type="button"
                 aria-pressed={selected}
                 disabled={busy}
-                onClick={() => setValue("targetRole", role, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                onClick={() =>
+                  setValue("targetRole", role, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
+                }
                 className={cn(
                   "inline-flex h-10 items-center rounded-full border px-3.5 text-sm transition-colors",
                   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:opacity-55",

@@ -26,7 +26,9 @@ describe("Popover", () => {
     await user.click(trigger);
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("dialog", { name: "Why was this flagged?" })).toHaveTextContent("Not found in your source.");
+    expect(screen.getByRole("dialog", { name: "Why was this flagged?" })).toHaveTextContent(
+      "Not found in your source.",
+    );
 
     await user.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "false");

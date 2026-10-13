@@ -25,7 +25,11 @@ describe("SaveStatus", () => {
   });
 
   it("offers a retry for transient failures and announces them", async () => {
-    const { onRetry, announced } = renderStatus({ status: "error", error: apiError(0, "NETWORK_ERROR"), willRetry: false });
+    const { onRetry, announced } = renderStatus({
+      status: "error",
+      error: apiError(0, "NETWORK_ERROR"),
+      willRetry: false,
+    });
 
     expect(announced()).toBe("Couldn't save");
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));

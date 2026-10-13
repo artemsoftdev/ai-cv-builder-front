@@ -92,7 +92,12 @@ describe("QuestionsPanel answering", () => {
     mockFetch();
     const prepareAnswer = vi.fn();
     const { rerender } = render(
-      wrap(<QuestionsPanel cv={makeCv([makeQuestion({ status: "applying", answer: "x" })], true)} prepareAnswer={prepareAnswer} />),
+      wrap(
+        <QuestionsPanel
+          cv={makeCv([makeQuestion({ status: "applying", answer: "x" })], true)}
+          prepareAnswer={prepareAnswer}
+        />,
+      ),
     );
 
     rerender(

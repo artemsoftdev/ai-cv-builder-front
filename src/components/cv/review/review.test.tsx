@@ -88,7 +88,12 @@ describe("ReviewNotice", () => {
 
   it("stays hidden when there is nothing to report", () => {
     const { container } = render(
-      <ReviewProvider review={{ flags: [], removed: [], evidence: {} }} dismissed={new Set()} onDismiss={vi.fn()} disabled={false}>
+      <ReviewProvider
+        review={{ flags: [], removed: [], evidence: {} }}
+        dismissed={new Set()}
+        onDismiss={vi.fn()}
+        disabled={false}
+      >
         <ReviewNotice removed={[]} />
       </ReviewProvider>,
     );

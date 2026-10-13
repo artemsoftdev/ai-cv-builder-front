@@ -92,10 +92,16 @@ describe("apiFetch responses", () => {
     fetchMock.mockResolvedValueOnce(
       errorResponse(400, "VALIDATION_ERROR", "Invalid body", { issues: [{ path: "email", message: "Invalid email" }] }),
     );
-    fetchMock.mockResolvedValueOnce(errorResponse(429, "RATE_LIMITED", "Slow down", undefined, { "Retry-After": "120" }));
+    fetchMock.mockResolvedValueOnce(
+      errorResponse(429, "RATE_LIMITED", "Slow down", undefined, { "Retry-After": "120" }),
+    );
 
-    const validation = (await apiFetch("/api/auth/signup", { method: "POST", json: {} }).catch((e: unknown) => e)) as ApiError;
-    const rateLimited = (await apiFetch("/api/auth/login", { method: "POST", json: {} }).catch((e: unknown) => e)) as ApiError;
+    const validation = (await apiFetch("/api/auth/signup", { method: "POST", json: {} }).catch(
+      (e: unknown) => e,
+    )) as ApiError;
+    const rateLimited = (await apiFetch("/api/auth/login", { method: "POST", json: {} }).catch(
+      (e: unknown) => e,
+    )) as ApiError;
 
     expect(getValidationIssues(validation)).toEqual([{ path: "email", message: "Invalid email" }]);
     expect(rateLimited.code).toBe("RATE_LIMITED");

@@ -65,7 +65,12 @@ function LinksEditor() {
         {fields.map((field, index) => (
           <li key={field.key} className="flex items-start gap-2">
             <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-              <FormTextField name={`contact.links.${index}.label`} label={`Link ${index + 1} label`} hideLabel placeholder="Label, e.g. GitHub" />
+              <FormTextField
+                name={`contact.links.${index}.label`}
+                label={`Link ${index + 1} label`}
+                hideLabel
+                placeholder="Label, e.g. GitHub"
+              />
               <FormTextField
                 name={`contact.links.${index}.url`}
                 label={`Link ${index + 1} address`}

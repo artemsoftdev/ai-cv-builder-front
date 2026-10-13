@@ -46,7 +46,10 @@ describe("SignupForm", () => {
   it("creates the account without sending the repeated password and continues to next", async () => {
     const fetchMock = mockFetch();
     fetchMock.mockResolvedValue(
-      jsonResponse({ user: { id: "u1", email: "jane@example.com", createdAt: "2026-01-01T00:00:00.000Z" } }, { status: 201 }),
+      jsonResponse(
+        { user: { id: "u1", email: "jane@example.com", createdAt: "2026-01-01T00:00:00.000Z" } },
+        { status: 201 },
+      ),
     );
     const { fill } = renderForm();
 

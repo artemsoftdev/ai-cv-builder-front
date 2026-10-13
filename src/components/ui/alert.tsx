@@ -26,7 +26,11 @@ export function Alert({ tone = "info", title, children, action, className }: Ale
   return (
     <div
       role={tone === "danger" || tone === "warning" ? "alert" : "status"}
-      className={cn("flex flex-col gap-3 rounded-lg border px-4 py-3 text-sm sm:flex-row sm:items-start", box, className)}
+      className={cn(
+        "flex flex-col gap-3 rounded-lg border px-4 py-3 text-sm sm:flex-row sm:items-start",
+        box,
+        className,
+      )}
     >
       <div className="flex min-w-0 flex-1 gap-2.5">
         <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

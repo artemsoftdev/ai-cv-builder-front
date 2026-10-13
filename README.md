@@ -31,13 +31,13 @@ API_INTERNAL_URL=http://localhost:4000 npm run dev   # http://localhost:3000
 is baked into the build, so the Docker image takes it as a build argument (`http://api:4000` in
 compose). See [.env.example](.env.example).
 
-| Script                    | What it does                                                |
-| ------------------------- | ----------------------------------------------------------- |
-| `npm run dev`             | dev server (Turbopack)                                      |
-| `npm run build` / `start` | production build (`output: "standalone"`) / serve it        |
-| `npm run typecheck`       | `next typegen && tsc --noEmit` (route types are generated)  |
-| `npm run lint`            | ESLint (Next, TypeScript, React Hooks/Compiler, Query)      |
-| `npm test`                | Vitest + Testing Library (jsdom)                            |
+| Script                    | What it does                                               |
+| ------------------------- | ---------------------------------------------------------- |
+| `npm run dev`             | dev server (Turbopack)                                     |
+| `npm run build` / `start` | production build (`output: "standalone"`) / serve it       |
+| `npm run typecheck`       | `next typegen && tsc --noEmit` (route types are generated) |
+| `npm run lint`            | ESLint (Next, TypeScript, React Hooks/Compiler, Query)     |
+| `npm test`                | Vitest + Testing Library (jsdom)                           |
 
 ## Layout
 

@@ -98,7 +98,10 @@ function CharacterCounter({ id, name, max }: { id?: string; name: Path<CvContent
   const length = typeof value === "string" ? value.length : 0;
   if (length < max * 0.8) return <span id={id} hidden />;
   return (
-    <p id={id} className={cn("text-right text-xs tabular-nums", length > max ? "text-danger-soft-fg" : "text-fg-subtle")}>
+    <p
+      id={id}
+      className={cn("text-right text-xs tabular-nums", length > max ? "text-danger-soft-fg" : "text-fg-subtle")}
+    >
       {length.toLocaleString("en")} / {max.toLocaleString("en")}
     </p>
   );

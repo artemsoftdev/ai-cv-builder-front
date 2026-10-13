@@ -85,9 +85,16 @@ describe("CvView", () => {
 
   it("restarts a failed generation and times the new run from the retry, even after a reload", async () => {
     const fetchMock = mockFetch();
-    const failed = makeCv({ status: "failed", content: null, review: null, error: { code: "LLM_UNAVAILABLE", message: "" } });
+    const failed = makeCv({
+      status: "failed",
+      content: null,
+      review: null,
+      error: { code: "LLM_UNAVAILABLE", message: "" },
+    });
     fetchMock.mockImplementation(async (_input, init) =>
-      init?.method === "POST" ? jsonResponse({ cv: generating({ stage: "queued" }) }, { status: 202 }) : jsonResponse({ cv: failed }),
+      init?.method === "POST"
+        ? jsonResponse({ cv: generating({ stage: "queued" }) }, { status: 202 })
+        : jsonResponse({ cv: failed }),
     );
     const view = renderView();
 

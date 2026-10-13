@@ -64,7 +64,11 @@ export function SectionCard({ section, title, icon, count, updated = false, head
             {count !== undefined && <span className="text-sm font-normal text-fg-subtle">{count}</span>}
             <AnimatePresence>
               {updated && (
-                <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                >
                   <Badge tone="primary">Updated</Badge>
                 </motion.span>
               )}

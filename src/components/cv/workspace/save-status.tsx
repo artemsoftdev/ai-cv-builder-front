@@ -18,7 +18,12 @@ type SaveStatusProps = {
   className?: string;
 };
 
-type Display = { icon: ReactNode; text: string; tone: "muted" | "warning" | "danger"; action?: "Retry" | "Reload" | "Show" };
+type Display = {
+  icon: ReactNode;
+  text: string;
+  tone: "muted" | "warning" | "danger";
+  action?: "Retry" | "Reload" | "Show";
+};
 
 // A rejected save (4xx) fails the same way again: say why instead of offering a blind retry.
 function rejectionReason(error: unknown): string {
@@ -34,7 +39,11 @@ function describe(state: SaveState, invalid: boolean): Display {
       return { icon: <Spinner size="sm" />, text: "Waiting for the update to finish…", tone: "muted" };
     case "error":
       if (!state.willRetry && !isTransientError(state.error)) {
-        return { icon: <CloudOff className="size-4" />, text: `Couldn't save: ${rejectionReason(state.error)}`, tone: "danger" };
+        return {
+          icon: <CloudOff className="size-4" />,
+          text: `Couldn't save: ${rejectionReason(state.error)}`,
+          tone: "danger",
+        };
       }
       return {
         icon: <CloudOff className="size-4" />,
@@ -44,7 +53,12 @@ function describe(state: SaveState, invalid: boolean): Display {
       };
   }
   if (invalid) {
-    return { icon: <TriangleAlert className="size-4" />, text: "Fix the highlighted fields to save", tone: "warning", action: "Show" };
+    return {
+      icon: <TriangleAlert className="size-4" />,
+      text: "Fix the highlighted fields to save",
+      tone: "warning",
+      action: "Show",
+    };
   }
   if (state.status === "saved") return { icon: <Check className="size-4" />, text: "All changes saved", tone: "muted" };
   return { icon: <Spinner size="sm" />, text: "Saving…", tone: "muted" };

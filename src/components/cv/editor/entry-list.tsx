@@ -34,7 +34,8 @@ type EntryListProps<N extends EntryName> = {
 
 // The section and list scaffolding shared by experience, education and skill groups.
 export function EntryList<N extends EntryName>(props: EntryListProps<N>) {
-  const { name, title, icon, updated, max, emptyText, addLabel, removedMessage, firstField, newEntry, children } = props;
+  const { name, title, icon, updated, max, emptyText, addLabel, removedMessage, firstField, newEntry, children } =
+    props;
   const { control, getValues, setFocus } = useFormContext<CvContent>();
   const { fields, append, insert, remove, move } = useFieldArray({ control, name, keyName: "key" });
   const addRef = useRef<HTMLButtonElement>(null);

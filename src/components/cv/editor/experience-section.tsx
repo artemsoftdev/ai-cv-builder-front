@@ -36,7 +36,11 @@ function ExperienceItemEditor({ index, itemId, actions }: ExperienceItemEditorPr
   const [title, company] = useWatch<CvContent, [`experience.${number}.title`, `experience.${number}.company`]>({
     name: [`experience.${index}.title`, `experience.${index}.company`],
   });
-  const heading = [title, company].map((part) => part.trim()).filter(Boolean).join(" · ") || "New position";
+  const heading =
+    [title, company]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(" · ") || "New position";
 
   return (
     <div className="space-y-4">

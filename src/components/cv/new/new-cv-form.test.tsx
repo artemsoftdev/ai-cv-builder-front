@@ -164,7 +164,10 @@ describe("NewCvForm sources", () => {
 
     await user.upload(fileInput(), pdf("old.pdf"));
     await user.click(screen.getByRole("tab", { name: /Paste text/ }));
-    await user.type(screen.getByLabelText("CV text"), "Jane Doe, backend engineer at Acme since 2021, Go and PostgreSQL.");
+    await user.type(
+      screen.getByLabelText("CV text"),
+      "Jane Doe, backend engineer at Acme since 2021, Go and PostgreSQL.",
+    );
     await user.type(roleInput(), "Engineer");
     await user.click(submit());
 

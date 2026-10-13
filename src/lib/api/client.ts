@@ -54,7 +54,11 @@ async function toApiError(response: Response): Promise<ApiError> {
 }
 
 // The deadline also covers reading the body: a stalled response must not hang autosave forever.
-async function request<T>(path: string, options: ApiRequestOptions, read: (response: Response) => Promise<T>): Promise<T> {
+async function request<T>(
+  path: string,
+  options: ApiRequestOptions,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
   const method = options.method ?? "GET";
   const headers = new Headers({ Accept: options.accept ?? "application/json" });
   let body: BodyInit | undefined;
@@ -93,7 +97,9 @@ async function request<T>(path: string, options: ApiRequestOptions, read: (respo
       // Polling must always see fresh state.
       cache: "no-store",
       keepalive:
-        options.keepalive === true && typeof body === "string" && new TextEncoder().encode(body).length <= KEEPALIVE_MAX_BYTES,
+        options.keepalive === true &&
+        typeof body === "string" &&
+        new TextEncoder().encode(body).length <= KEEPALIVE_MAX_BYTES,
       signal: controller.signal,
     });
     if (!response.ok) throw await toApiError(response);
@@ -113,7 +119,11 @@ export function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Prom
     try {
       return JSON.parse(text) as T;
     } catch {
-      throw new ApiError({ status: response.status, code: "INTERNAL", message: "The server sent an unexpected response." });
+      throw new ApiError({
+        status: response.status,
+        code: "INTERNAL",
+        message: "The server sent an unexpected response.",
+      });
     }
   });
 }
