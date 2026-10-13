@@ -74,4 +74,17 @@ describe("handleSessionExpired", () => {
     expect(replace).toHaveBeenCalledExactlyOnceWith("/login");
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("handles 401s again once the page comes back from the back-forward cache", async () => {
+    mockFetch().mockResolvedValue(new Response(null, { status: 204 }));
+    session.leaveTo("/login");
+
+    const restored = new Event("pageshow");
+    Object.defineProperty(restored, "persisted", { value: true });
+    window.dispatchEvent(restored);
+    await session.handleSessionExpired();
+
+    expect(session.isLeaving()).toBe(true);
+    expect(replace).toHaveBeenCalledTimes(2);
+  });
 });

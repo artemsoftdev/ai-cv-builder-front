@@ -6,6 +6,13 @@ const SESSION_CLEAR_PATH = "/auth/session";
 
 let leaving = false;
 
+if (typeof window !== "undefined") {
+  // Back from the back-forward cache after leaving: the page is alive again and must handle 401s.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) leaving = false;
+  });
+}
+
 // Indirection so tests can observe full-page navigations (jsdom does not navigate).
 export const browserNavigation = {
   replace: (url: string) => window.location.replace(url),
