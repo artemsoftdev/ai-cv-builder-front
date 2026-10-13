@@ -2,18 +2,19 @@
 
 import { Check, ChevronDown, MessageCircleQuestion } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { getErrorMessage } from "@/lib/api/error-messages";
 import type { CvContent, CvQuestion } from "@/lib/api/types";
+import { writeTextDraft } from "@/lib/cv/drafts";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
 import { useAnswerQuestion, useDismissQuestion } from "@/lib/query/cv-hooks";
 import { cn } from "@/lib/utils/cn";
 
-import { QuestionCard } from "./question-card";
-import { describeQuestionTarget, isActiveQuestion, needsAnswer } from "./question-target";
+import { answerDraftKey, QuestionCard } from "./question-card";
+import { describeQuestionTarget, isActiveQuestion, isEntryRemoved, needsAnswer } from "./question-target";
 
 type QuestionsPanelProps = {
   cv: ReadyCv;
@@ -23,6 +24,9 @@ type QuestionsPanelProps = {
 };
 
 type Announcement = { id: number; text: string; tone: "success" | "error" };
+
+// Skipping can't be undone on the server, so it is only sent once the Undo toast has gone.
+export const SKIP_UNDO_MS = 6_000;
 
 function describeTransition(
   previous: CvQuestion[],
@@ -43,8 +47,10 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
   const answer = useAnswerQuestion(cv.id);
   const dismiss = useDismissQuestion(cv.id);
   const headingId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const resolvedId = useId();
   const [showResolved, setShowResolved] = useState(false);
+  const [skipped, setSkipped] = useState<ReadonlySet<string>>(() => new Set());
 
   const [previousQuestions, setPreviousQuestions] = useState(cv.questions);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -59,10 +65,13 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
     else toast.error(announcement.text);
   }, [announcement]);
 
-  const active = cv.questions.filter(isActiveQuestion);
+  const active = cv.questions.filter((question) => isActiveQuestion(question) && !skipped.has(question.id));
   const resolved = cv.questions.filter((question) => !isActiveQuestion(question));
-  const openCount = cv.questions.filter(needsAnswer).length;
+  const openCount = active.filter(needsAnswer).length;
   const locked = cv.busy || answer.isPending || dismiss.isPending;
+
+  // A card that resolves or is skipped takes the focus with it: keep keyboard users in the panel.
+  const keepFocusInPanel = useCallback(() => headingRef.current?.focus({ preventScroll: true }), []);
 
   if (cv.questions.length === 0 && !showEmptyState) return null;
 
@@ -73,8 +82,31 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
   };
 
   const skip = (questionId: string) => {
-    dismiss.mutate(questionId, {
-      onError: (error) => toast.error("Couldn't skip the question", { description: getErrorMessage(error) }),
+    const restore = () => setSkipped((current) => new Set([...current].filter((id) => id !== questionId)));
+    let settled = false;
+    const commit = () => {
+      if (settled) return;
+      settled = true;
+      dismiss.mutate(questionId, {
+        onSuccess: () => writeTextDraft(answerDraftKey(questionId), ""),
+        onError: (error) => {
+          restore();
+          toast.error("Couldn't skip the question", { description: getErrorMessage(error) });
+        },
+      });
+    };
+    setSkipped((current) => new Set(current).add(questionId));
+    toast("Question skipped", {
+      duration: SKIP_UNDO_MS,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          settled = true;
+          restore();
+        },
+      },
+      onAutoClose: commit,
+      onDismiss: commit,
     });
   };
 
@@ -88,7 +120,12 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
           <MessageCircleQuestion className="size-4.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 id={headingId} className="flex flex-wrap items-center gap-2 text-base font-semibold text-fg">
+          <h2
+            ref={headingRef}
+            id={headingId}
+            tabIndex={-1}
+            className="flex flex-wrap items-center gap-2 text-base font-semibold text-fg outline-none"
+          >
             {openCount > 0 ? "Claude needs a few details" : "Questions"}
             {openCount > 0 && <Badge tone="warning">{openCount}</Badge>}
           </h2>
@@ -121,11 +158,13 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
                 <QuestionCard
                   question={question}
                   target={describeQuestionTarget(question, cv.content)}
+                  entryRemoved={isEntryRemoved(question, cv.content)}
                   locked={locked}
                   submitting={answer.isPending && answer.variables?.questionId === question.id}
                   skipping={dismiss.isPending && dismiss.variables === question.id}
                   onAnswer={(text) => submitAnswer(question.id, text)}
                   onSkip={() => skip(question.id)}
+                  onFocusLost={keepFocusInPanel}
                 />
               </motion.li>
             ))}

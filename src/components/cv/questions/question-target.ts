@@ -20,3 +20,11 @@ export const isActiveQuestion = (question: Pick<CvQuestion, "status">) =>
 
 export const needsAnswer = (question: Pick<CvQuestion, "status">) =>
   question.status === "open" || question.status === "failed";
+
+// The API refuses answers about an entry that no longer exists; only skipping is left.
+export function isEntryRemoved(question: Pick<CvQuestion, "section" | "itemId">, content: CvContent): boolean {
+  if (question.itemId === null) return false;
+  if (question.section === "experience") return !content.experience.some((entry) => entry.id === question.itemId);
+  if (question.section === "education") return !content.education.some((entry) => entry.id === question.itemId);
+  return false;
+}

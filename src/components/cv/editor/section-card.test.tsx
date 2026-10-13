@@ -1,5 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
 import { describe, expect, it } from "vitest";
 
@@ -9,10 +10,13 @@ import { makeContent } from "@/test/fixtures";
 import { EditorProvider } from "./editor-context";
 import { SectionCard } from "./section-card";
 
-let form: UseFormReturn<CvContent>;
+const formRef: { current: UseFormReturn<CvContent> | null } = { current: null };
 
 function Harness({ readOnly = false }: { readOnly?: boolean }) {
-  form = useForm<CvContent>({ defaultValues: makeContent() });
+  const form = useForm<CvContent>({ defaultValues: makeContent() });
+  useEffect(() => {
+    formRef.current = form;
+  });
   return (
     <FormProvider {...form}>
       <EditorProvider readOnly={readOnly}>
@@ -41,7 +45,7 @@ describe("SectionCard", () => {
     render(<Harness />);
     await userEvent.click(screen.getByRole("button", { name: "Summary" }));
 
-    act(() => form.setError("summary", { type: "server", message: "Too long" }));
+    act(() => formRef.current?.setError("summary", { type: "server", message: "Too long" }));
 
     expect(screen.getByRole("button", { name: "Summary" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("textbox", { name: "Professional summary" })).toBeVisible();

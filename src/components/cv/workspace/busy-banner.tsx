@@ -12,7 +12,7 @@ export function BusyBanner({ connectionLost }: { connectionLost: boolean }) {
         <p className="mt-0.5 text-primary-soft-fg/80">
           {connectionLost
             ? "Connection lost. The update continues on the server; we'll pick it up when you're back online."
-            : "Editing is paused for a few seconds so your changes and Claude's don't collide."}
+            : "Editing is paused until Claude is done, so your changes and Claude's don't collide."}
         </p>
       </div>
     </div>

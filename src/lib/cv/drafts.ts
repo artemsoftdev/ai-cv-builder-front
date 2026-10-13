@@ -61,6 +61,24 @@ export function removeDraft(cvId: string): void {
   }
 }
 
+// Plain text typed elsewhere (an answer, pasted CV text), under its own key next to the CV drafts.
+export function readTextDraft(key: string): string | null {
+  try {
+    return storage()?.getItem(DRAFT_PREFIX + key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeTextDraft(key: string, value: string): void {
+  try {
+    if (value.trim()) storage()?.setItem(DRAFT_PREFIX + key, value);
+    else storage()?.removeItem(DRAFT_PREFIX + key);
+  } catch {
+    // Quota exceeded or storage blocked.
+  }
+}
+
 export function clearDrafts(): void {
   const store = storage();
   if (!store) return;

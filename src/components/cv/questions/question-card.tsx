@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { describeJobError, getErrorMessage } from "@/lib/api/error-messages";
 import { ApiError, isApiError } from "@/lib/api/errors";
 import { API_LIMITS, type CvQuestion } from "@/lib/api/types";
+import { readTextDraft, writeTextDraft } from "@/lib/cv/drafts";
 import { applyServerError, SERVER_ERROR } from "@/lib/forms/apply-server-error";
 import { cn } from "@/lib/utils/cn";
 
@@ -30,49 +31,78 @@ type AnswerValues = z.input<typeof answerSchema>;
 type QuestionCardProps = {
   question: CvQuestion;
   target: string;
+  entryRemoved: boolean;
   locked: boolean;
   submitting: boolean;
   skipping: boolean;
   onAnswer: (answer: string) => Promise<void>;
   onSkip: () => void;
+  onFocusLost?: () => void;
 };
 
+export const answerDraftKey = (questionId: string) => `answer:${questionId}`;
+
 function answerErrorMessage(error: unknown): string {
-  if (isApiError(error, "INVALID_STATE")) return "This question was already answered or skipped.";
   if (isApiError(error, "CV_BUSY")) return "Claude is still updating your CV. Try again when it's done.";
+  // INVALID_STATE has several causes (answered meanwhile, entry removed); the API's text says which.
   if (error instanceof ApiError) return getErrorMessage(error);
   return error instanceof Error ? error.message : getErrorMessage(error);
 }
 
-export function QuestionCard({ question, target, locked, submitting, skipping, onAnswer, onSkip }: QuestionCardProps) {
+export function QuestionCard(props: QuestionCardProps) {
+  const { question, target, entryRemoved, locked, submitting, skipping, onAnswer, onSkip, onFocusLost } = props;
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
   const [submittedHere, setSubmittedHere] = useState(false);
   const failed = question.status === "failed";
   const applying = question.status === "applying";
+  const draftKey = answerDraftKey(question.id);
+  // A failed answer is offered again; a draft typed before a reload wins over it.
+  const [initialAnswer] = useState(() => readTextDraft(draftKey) ?? question.answer ?? "");
 
   const {
     control,
     register,
     handleSubmit,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<AnswerValues>({
     resolver: zodResolver(answerSchema),
-    defaultValues: { answer: question.answer ?? "" },
+    defaultValues: { answer: initialAnswer },
     mode: "onTouched",
   });
-  const length = useWatch({ control, name: "answer" }).trim().length;
+  const answer = useWatch({ control, name: "answer" });
+  const length = answer.trim().length;
+  // Saving pending CV edits comes first, before the answer request itself is in flight.
+  const sending = submitting || isSubmitting;
+
+  useEffect(() => {
+    writeTextDraft(draftKey, answer);
+  }, [draftKey, answer]);
+
+  const onFocusLostRef = useRef(onFocusLost);
+  useEffect(() => {
+    onFocusLostRef.current = onFocusLost;
+  });
+  // Removing a focused element drops focus to <body>; this runs once the card has left the DOM.
+  useEffect(
+    () => () => {
+      if (document.activeElement === document.body) onFocusLostRef.current?.();
+    },
+    [],
+  );
 
   // The form turns into a progress line: keep keyboard focus on the card.
   useEffect(() => {
     if (applying && submittedHere) rootRef.current?.focus();
   }, [applying, submittedHere]);
 
-  const onSubmit = handleSubmit(async ({ answer }) => {
+  const onSubmit = handleSubmit(async ({ answer: text }) => {
+    if (sending) return;
     try {
       setSubmittedHere(true);
-      await onAnswer(answer);
+      await onAnswer(text);
+      writeTextDraft(draftKey, "");
     } catch (error) {
       setSubmittedHere(false);
       if (isApiError(error, "VALIDATION_ERROR")) applyServerError(error, setError, ["answer"]);
@@ -82,6 +112,7 @@ export function QuestionCard({ question, target, locked, submitting, skipping, o
 
   const answerId = `${id}-answer`;
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
   const counterId = `${id}-counter`;
 
   return (
@@ -114,6 +145,18 @@ export function QuestionCard({ question, target, locked, submitting, skipping, o
             Updating your CV with this answer…
           </p>
         </>
+      ) : entryRemoved ? (
+        <div className="mt-2 space-y-3">
+          <p id={`${id}-question`} className="text-sm font-medium break-words text-fg-muted">
+            {question.question}
+          </p>
+          <p className="text-sm text-fg-muted">The entry this question was about has been removed from your CV.</p>
+          <div className="flex justify-end">
+            <Button variant="secondary" size="sm" onClick={onSkip} loading={skipping} disabled={locked}>
+              Skip
+            </Button>
+          </div>
+        </div>
       ) : (
         <form onSubmit={onSubmit} noValidate className="mt-2 space-y-3">
           <label id={`${id}-question`} htmlFor={answerId} className="block text-sm font-medium break-words text-fg">
@@ -134,12 +177,17 @@ export function QuestionCard({ question, target, locked, submitting, skipping, o
               placeholder="Your answer"
               className="min-h-20"
               invalid={Boolean(errors.answer)}
-              aria-describedby={[errors.answer ? errorId : null, counterId].filter(Boolean).join(" ")}
-              disabled={locked && !submitting}
-              readOnly={submitting}
+              aria-describedby={[errors.answer ? errorId : hintId, counterId].join(" ")}
+              readOnly={sending}
               {...register("answer")}
             />
             <FieldError id={errorId} message={errors.answer?.message} />
+            {!errors.answer && (
+              <p id={hintId} className="text-xs text-fg-muted">
+                Answer in a full sentence with the facts to use: numbers, tools, dates. Claude adds nothing you
+                don&apos;t write.
+              </p>
+            )}
             <p
               id={counterId}
               className={cn("text-right text-xs tabular-nums", length > ANSWER_MAX ? "text-danger-soft-fg" : "text-fg-subtle")}
@@ -153,10 +201,10 @@ export function QuestionCard({ question, target, locked, submitting, skipping, o
             </p>
           )}
           <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={onSkip} loading={skipping} disabled={locked || submitting}>
+            <Button variant="ghost" size="sm" onClick={onSkip} loading={skipping} disabled={locked || sending}>
               Skip
             </Button>
-            <Button type="submit" size="sm" loading={submitting} disabled={locked && !submitting}>
+            <Button type="submit" size="sm" loading={sending} disabled={locked && !sending}>
               {failed ? "Try again" : "Update CV"}
             </Button>
           </div>
