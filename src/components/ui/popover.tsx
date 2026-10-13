@@ -143,17 +143,21 @@ type PopoverContentProps = {
   className?: string;
 };
 
+/**
+ * Rendered as `<span>`s so a Popover can sit inside text (e.g. next to a bullet in a `<p>`);
+ * keep its content to phrasing content: text, links, buttons.
+ */
 export function PopoverContent({ children, side = "bottom", align = "center", className }: PopoverContentProps) {
   const { open, triggerId, contentId } = usePopoverContext("PopoverContent");
-  const outerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLSpanElement>(null);
+  const innerRef = useRef<HTMLSpanElement>(null);
   useKeepInViewport(outerRef, innerRef, open);
 
   return (
     <AnimatePresence>
       {open && (
-        <div key="popover" ref={outerRef} className={floatingOuterClasses(side, align)}>
-          <motion.div
+        <span key="popover" ref={outerRef} className={floatingOuterClasses(side, align)}>
+          <motion.span
             ref={innerRef}
             id={contentId}
             role="dialog"
@@ -161,13 +165,13 @@ export function PopoverContent({ children, side = "bottom", align = "center", cl
             {...floatingMotion(side)}
             className={cn(
               floatingInnerClasses(side, align),
-              "w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-3.5 text-left text-sm leading-relaxed text-fg shadow-elevated",
+              "block w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-3.5 text-left text-sm font-normal leading-relaxed text-fg shadow-elevated",
               className,
             )}
           >
             {children}
-          </motion.div>
-        </div>
+          </motion.span>
+        </span>
       )}
     </AnimatePresence>
   );
