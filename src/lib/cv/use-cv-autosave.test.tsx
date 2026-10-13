@@ -178,7 +178,35 @@ describe("useCvAutosave", () => {
     await user.type(summary(), " and laptop");
 
     await waitFor(() => expect(summary()).toHaveValue("Edited on my phone"));
-    expect(callbacks.onConflict).toHaveBeenCalledTimes(1);
+    expect(callbacks.onConflict).toHaveBeenCalledExactlyOnceWith({ kept: [], dropped: ["summary"] });
     expect(screen.getByLabelText("Save status")).toHaveTextContent("saved");
+    // The server copy won and nothing else was sent.
+    expect(patchCalls(fetchMock)).toHaveLength(1);
+  });
+
+  it("on VERSION_CONFLICT re-applies edits to parts only changed here and saves them on the new version", async () => {
+    const fetchMock = mockFetch();
+    const remote = content();
+    remote.contact.headline = "Staff Engineer";
+    let patches = 0;
+    fetchMock.mockImplementation(async (_input, init) => {
+      if (init?.method !== "PATCH") return jsonResponse({ cv: makeCv({ version: 3, content: remote }) });
+      patches += 1;
+      if (patches === 1) return errorResponse(409, "VERSION_CONFLICT", "Stale version", { currentVersion: 3 });
+      const body = JSON.parse(String(init.body)) as { content: CvContent };
+      return jsonResponse({ cv: makeCv({ version: 4, content: body.content }) });
+    });
+    const { user, summary, callbacks } = renderEditor();
+
+    await user.type(summary(), " and laptop");
+
+    await waitFor(() => expect(patches).toBe(2));
+    await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("saved"));
+    const retried = JSON.parse(String(patchCalls(fetchMock)[1]?.[1]?.body)) as { version: number; content: CvContent };
+    expect(retried.version).toBe(3);
+    expect(retried.content.summary).toBe("Original summary and laptop");
+    expect(retried.content.contact.headline).toBe("Staff Engineer");
+    expect(summary()).toHaveValue("Original summary and laptop");
+    expect(callbacks.onConflict).toHaveBeenCalledExactlyOnceWith({ kept: ["summary"], dropped: [] });
   });
 });

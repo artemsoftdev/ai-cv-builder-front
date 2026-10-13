@@ -7,11 +7,20 @@ import type { Cv, CvContent } from "@/lib/api/types";
 import { useUpdateCv } from "@/lib/query/cv-hooks";
 
 import { cvContentSchema } from "./content-schema";
+import { mergeContent, type MergeUnit } from "./merge-content";
 import { SaveQueue, type CvPatch, type SaveState } from "./save-queue";
 import { changedSections, type CvSectionKey } from "./sections";
 
 /** `useCv().refetch` (a refetch never throws; failures come back in the result). */
 type RefetchCv = () => Promise<{ isSuccess: boolean; data?: Cv | undefined }>;
+
+/** How a `VERSION_CONFLICT` was resolved (see `mergeContent`). */
+export type ConflictResolution = {
+  /** Local edits re-applied on top of the latest version (and saved again). */
+  kept: MergeUnit[];
+  /** Local edits replaced by the latest version, which changed the same part. */
+  dropped: MergeUnit[];
+};
 
 type UseCvAutosaveOptions = {
   /** Latest server state of the CV (from `useCv`); must have content. */
@@ -19,8 +28,11 @@ type UseCvAutosaveOptions = {
   /** Reloads the server copy, to recover from `VERSION_CONFLICT` and `CV_BUSY`. */
   refetch: RefetchCv;
   form: UseFormReturn<CvContent>;
-  /** A save hit `VERSION_CONFLICT`; the latest version is loaded into the form next. */
-  onConflict?: () => void;
+  /**
+   * A save hit `VERSION_CONFLICT` and the latest version is now in the form, merged with the
+   * local edits where they don't collide. Queued renames and flag dismissals are dropped.
+   */
+  onConflict?: (resolution: ConflictResolution) => void;
   /** The form was replaced with newer server content (e.g. an answer was applied). */
   onRemoteUpdate?: (sections: CvSectionKey[]) => void;
   onSaved?: (patch: CvPatch) => void;
@@ -45,7 +57,8 @@ export type CvAutosave = {
  *   carrying the version returned by the previous one (see `SaveQueue`);
  * - the title and dismissed review flags go through the same queue so they never race it;
  * - newer server content (an AI update) replaces the form only when nothing local is unsaved;
- *   otherwise the next save gets `VERSION_CONFLICT` and the server copy is loaded instead;
+ *   otherwise the next save gets `VERSION_CONFLICT`: the latest version is loaded and local
+ *   edits to the parts it did not change are re-applied and saved (`mergeContent`);
  * - `CV_BUSY` keeps the edits and sends them once a fresh fetch shows the job has finished;
  * - pending edits are sent when the tab is hidden or the editor unmounts, and leaving the page
  *   with unsaved edits asks for confirmation.
@@ -70,6 +83,8 @@ export function useCvAutosave({
   // Last JSON the change handler looked at, to skip notifications without a value change.
   const seenJson = useRef<string | null>(null);
   const invalidRef = useRef(false);
+  // Server content at `queue.version`: what local edits are based on (the base of a merge).
+  const baseContent = useRef(cv.content);
   // After CV_BUSY: set once data fetched after the error has arrived, so `cv.busy` is current.
   const busyChecked = useRef(false);
   const onRemoteUpdateRef = useRef(onRemoteUpdate);
@@ -79,40 +94,63 @@ export function useCvAutosave({
 
   const { subscribe, getValues, trigger, reset } = form;
 
-  /** Replaces the form with the server's content and continues from its version. */
-  const applyServerContent = useCallback(
-    (latest: Cv) => {
-      if (!latest.content) return;
-      const sections = changedSections(getValues(), latest.content);
-      const json = JSON.stringify(latest.content);
-      queuedJson.current = json;
-      seenJson.current = json;
-      invalidRef.current = false;
-      setInvalid(false);
+  /**
+   * Continues from the server's version of the CV, showing `shown`: the server content itself,
+   * or a merge of it with local edits, which is then saved on top of it.
+   */
+  const showServerContent = useCallback(
+    (latest: Cv & { content: CvContent }, shown: CvContent = latest.content) => {
+      const sections = changedSections(getValues(), shown);
+      const serverJson = JSON.stringify(latest.content);
+      const shownJson = JSON.stringify(shown);
+      baseContent.current = latest.content;
       queue.reset(latest.version);
-      // Never hand the query cache's object to RHF, which mutates its values in place.
-      reset(structuredClone(latest.content));
+      seenJson.current = shownJson;
+      // A copy: RHF mutates its values in place and must never touch the query cache.
+      reset(structuredClone(shown));
+
+      // Merged local edits may still be invalid (being fixed); they are saved once they pass.
+      const valid = shownJson === serverJson || cvContentSchema.safeParse(shown).success;
+      invalidRef.current = !valid;
+      setInvalid(!valid);
+      queuedJson.current = valid ? shownJson : serverJson;
+      if (!valid) void trigger();
+      else if (shownJson !== serverJson) queue.schedule({ content: structuredClone(shown) }, { immediate: true });
+
       if (sections.length > 0) onRemoteUpdateRef.current?.(sections);
     },
-    [queue, getValues, reset],
+    [queue, getValues, reset, trigger],
   );
 
+  const onConflictRef = useRef(onConflict);
+  useEffect(() => {
+    onConflictRef.current = onConflict;
+  });
+
+  /** After `VERSION_CONFLICT`: load the latest version and re-apply what doesn't collide. */
   const reloadAfterConflict = useCallback(async () => {
     const result = await refetch();
+    const latest = result.data;
     // On failure the status keeps offering "Reload".
-    if (result.isSuccess && result.data && queue.blockedReason === "conflict") applyServerContent(result.data);
-  }, [refetch, queue, applyServerContent]);
+    if (!result.isSuccess || !latest?.content || queue.blockedReason !== "conflict") return;
+    // The form holds the rejected edit and anything typed since.
+    const merge = baseContent.current ? mergeContent(baseContent.current, getValues(), latest.content) : null;
+    showServerContent({ ...latest, content: latest.content }, merge?.content);
+    onConflictRef.current?.({ kept: merge?.kept ?? [], dropped: merge?.dropped ?? [] });
+  }, [refetch, queue, getValues, showServerContent]);
 
   // The queue outlives renders: keep its closures current.
   useEffect(() => {
     queue.setHandlers({
-      send: async (patch) => ({ version: (await updateCv(patch)).version }),
+      send: async (patch) => {
+        const saved = await updateCv(patch);
+        // The server's copy (trimmed, normalised) is what the next edits are based on.
+        if (saved.content) baseContent.current = saved.content;
+        return { version: saved.version };
+      },
       onStateChange: setState,
       onSaved,
-      onConflict: () => {
-        onConflict?.();
-        void reloadAfterConflict();
-      },
+      onConflict: () => void reloadAfterConflict(),
       onBusy: () => {
         busyChecked.current = false;
         void refetch().then((result) => {
@@ -123,7 +161,7 @@ export function useCvAutosave({
         });
       },
     });
-  }, [queue, updateCv, refetch, onSaved, onConflict, reloadAfterConflict]);
+  }, [queue, updateCv, refetch, onSaved, reloadAfterConflict]);
 
   useEffect(() => {
     queuedJson.current = JSON.stringify(getValues());
@@ -157,8 +195,8 @@ export function useCvAutosave({
     if (cv.version <= queue.version || queue.hasUnsavedChanges) return;
     // Invalid edits are not queued but are still the user's work.
     if (JSON.stringify(getValues()) !== queuedJson.current) return;
-    applyServerContent(cv);
-  }, [cv, queue, getValues, applyServerContent]);
+    showServerContent({ ...cv, content: cv.content });
+  }, [cv, queue, getValues, showServerContent]);
 
   // CV_BUSY: send the kept edits once fresh data shows the job has finished.
   useEffect(() => {

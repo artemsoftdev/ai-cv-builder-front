@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { panelId, tabId } from "@/components/ui/segmented-tabs";
 import type { Cv, CvContent } from "@/lib/api/types";
 import { cvContentSchema } from "@/lib/cv/content-schema";
+import { MERGE_UNIT_LABELS } from "@/lib/cv/merge-content";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
 import type { CvPatch } from "@/lib/cv/save-queue";
 import type { CvSectionKey } from "@/lib/cv/sections";
-import { useCvAutosave } from "@/lib/cv/use-cv-autosave";
+import { useCvAutosave, type ConflictResolution } from "@/lib/cv/use-cv-autosave";
 import { useFocusOnMount } from "@/lib/hooks/use-focus-on-mount";
 import { DESKTOP_QUERY, useMediaQuery } from "@/lib/hooks/use-media-query";
 
@@ -73,13 +74,20 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     if (patch.title !== undefined) setPendingTitle((current) => (current === patch.title ? null : current));
   }, []);
 
-  const handleConflict = useCallback(() => {
-    // The queued rename / dismissals were dropped: show the server's state again.
+  const handleConflict = useCallback(({ kept, dropped }: ConflictResolution) => {
+    // Queued renames / dismissals were dropped: show the server's state again.
     setPendingTitle(null);
     setDismissedFlags(new Set());
-    toast.warning("This CV changed elsewhere — reloaded the latest version", {
-      description: "Your most recent edit could not be applied on top of it.",
-    });
+    if (dropped.length > 0) {
+      const parts = dropped.map((unit) => MERGE_UNIT_LABELS[unit]).join(", ");
+      toast.warning("This CV was changed elsewhere", {
+        description: `Your edits to ${parts} were replaced by the newer version.${kept.length > 0 ? " Your other edits were kept." : ""}`,
+      });
+    } else if (kept.length > 0) {
+      toast.info("This CV was changed elsewhere", { description: "Your edits were kept and saved on top of the newer version." });
+    } else {
+      toast.info("This CV was changed elsewhere", { description: "Showing the latest version." });
+    }
   }, []);
 
   const autosave = useCvAutosave({
