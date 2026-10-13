@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileText, FileUp, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { Controller, useForm, useWatch, type UseFormSetError } from "react-hook-form";
 
 import { Alert } from "@/components/ui/alert";
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { describeGenerationLimit, getErrorMessage } from "@/lib/api/error-messages";
 import { isApiError } from "@/lib/api/errors";
 import { API_LIMITS } from "@/lib/api/types";
+import { readTextDraft, writeTextDraft } from "@/lib/cv/drafts";
 import { applyServerError, SERVER_ERROR } from "@/lib/forms/apply-server-error";
 import { useCreateCv } from "@/lib/query/cv-hooks";
 import { cn } from "@/lib/utils/cn";
@@ -68,6 +69,21 @@ function showCreateError(error: unknown, source: SourceMode, setError: UseFormSe
   }
 }
 
+const DRAFT_KEY = "new-cv";
+
+// Pasted text can be long: a reload or a discarded tab must not lose it (a picked file can't be kept).
+function readNewCvDraft(): { source: SourceMode; targetRole: string; text: string } | null {
+  try {
+    const draft: unknown = JSON.parse(readTextDraft(DRAFT_KEY) ?? "null");
+    if (typeof draft !== "object" || draft === null) return null;
+    const { source, targetRole, text } = draft as Record<string, unknown>;
+    if (typeof targetRole !== "string" || typeof text !== "string") return null;
+    return { source: source === "text" ? "text" : "pdf", targetRole, text };
+  } catch {
+    return null;
+  }
+}
+
 export function NewCvForm() {
   const router = useRouter();
   const createCv = useCreateCv();
@@ -93,6 +109,19 @@ export function NewCvForm() {
   const text = useWatch({ control, name: "text" });
   const textLength = sourceTextLength(text);
 
+  useEffect(() => {
+    const draft = readNewCvDraft();
+    if (!draft) return;
+    setValue("source", draft.source);
+    setValue("targetRole", draft.targetRole);
+    setValue("text", draft.text);
+  }, [setValue]);
+
+  useEffect(() => {
+    const empty = !targetRole.trim() && !text.trim();
+    writeTextDraft(DRAFT_KEY, empty ? "" : JSON.stringify({ source, targetRole, text }));
+  }, [source, targetRole, text]);
+
   const changeSource = (mode: SourceMode) => {
     setValue("source", mode);
     clearErrors(["file", "text"]);
@@ -106,6 +135,7 @@ export function NewCvForm() {
         : { targetRole: values.targetRole, text: values.text.trim() };
     try {
       const cv = await createCv.mutateAsync(input);
+      writeTextDraft(DRAFT_KEY, "");
       router.push(`/cvs/${encodeURIComponent(cv.id)}`);
     } catch (error) {
       showCreateError(error, values.source, setError);

@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,6 +30,7 @@ const pdf = (name = "cv.pdf", size = 2_000) => new File([new Uint8Array(size)], 
 
 beforeEach(() => {
   router.push.mockReset();
+  sessionStorage.clear();
 });
 
 describe("NewCvForm validation", () => {
@@ -152,5 +153,72 @@ describe("NewCvForm submit", () => {
 
     expect(await screen.findByText(expected)).toBeInTheDocument();
     expect(fileInput()).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+describe("NewCvForm sources", () => {
+  it("sends only the selected source when both were filled in", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockResolvedValue(jsonResponse({ cv: { id: "cv-3", status: "generating" } }, { status: 202 }));
+    const { user, fileInput, roleInput, submit } = renderForm();
+
+    await user.upload(fileInput(), pdf("old.pdf"));
+    await user.click(screen.getByRole("tab", { name: /Paste text/ }));
+    await user.type(screen.getByLabelText("CV text"), "Jane Doe, backend engineer at Acme since 2021, Go and PostgreSQL.");
+    await user.type(roleInput(), "Engineer");
+    await user.click(submit());
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/cvs/cv-3"));
+    const body = fetchCall(fetchMock).init.body as FormData;
+    expect(body.has("file")).toBe(false);
+    expect(body.get("text")).toMatch(/^Jane Doe/);
+  });
+
+  it("does not block submitting a PDF because of text typed in the other tab", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockResolvedValue(jsonResponse({ cv: { id: "cv-4", status: "generating" } }, { status: 202 }));
+    const { user, fileInput, roleInput, submit } = renderForm();
+
+    await user.click(screen.getByRole("tab", { name: /Paste text/ }));
+    await user.type(screen.getByLabelText("CV text"), "Too short");
+    await user.click(screen.getByRole("tab", { name: /Upload PDF/ }));
+    await user.upload(fileInput(), pdf("jane.pdf"));
+    await user.type(roleInput(), "Engineer");
+    await user.click(submit());
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/cvs/cv-4"));
+    const body = fetchCall(fetchMock).init.body as FormData;
+    expect(body.has("text")).toBe(false);
+    expect((body.get("file") as File).name).toBe("jane.pdf");
+  });
+
+  it("rejects an oversized PDF before uploading it", async () => {
+    const fetchMock = mockFetch();
+    const { user, fileInput } = renderForm();
+
+    await user.upload(fileInput(), pdf("huge.pdf", 6 * 1024 * 1024));
+
+    expect(await screen.findByText(/This PDF is 6 MB; the limit is 5 MB/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps pasted text and the role across a reload, and forgets them once the CV is created", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockResolvedValue(jsonResponse({ cv: { id: "cv-5", status: "generating" } }, { status: 202 }));
+    const source = "Jane Doe, backend engineer at Acme since 2021, Go and PostgreSQL, BSc from MIT.";
+    const first = renderForm();
+    await first.user.click(screen.getByRole("tab", { name: /Paste text/ }));
+    await first.user.type(screen.getByLabelText("CV text"), source);
+    await first.user.type(first.roleInput(), "Data Analyst");
+    cleanup();
+
+    const second = renderForm();
+
+    await waitFor(() => expect(screen.getByLabelText("CV text")).toHaveValue(source));
+    expect(screen.getByRole("tab", { name: /Paste text/ })).toHaveAttribute("aria-selected", "true");
+    expect(second.roleInput()).toHaveValue("Data Analyst");
+    await second.user.click(second.submit());
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/cvs/cv-5"));
+    expect(sessionStorage.getItem("cvb:draft:new-cv")).toBeNull();
   });
 });
