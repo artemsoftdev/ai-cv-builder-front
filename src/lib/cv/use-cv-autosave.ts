@@ -85,6 +85,8 @@ export function useCvAutosave({
   const invalidRef = useRef(false);
   // Server content at `queue.version`: what local edits are based on (the base of a merge).
   const baseContent = useRef(cv.content);
+  // Server version the last merge was re-sent onto; cleared by any successful save.
+  const mergedOnto = useRef<number | null>(null);
   // After CV_BUSY: set once data fetched after the error has arrived, so `cv.busy` is current.
   const busyChecked = useRef(false);
   const onRemoteUpdateRef = useRef(onRemoteUpdate);
@@ -135,8 +137,17 @@ export function useCvAutosave({
     if (!result.isSuccess || !latest?.content || queue.blockedReason !== "conflict") return;
     // The form holds the rejected edit and anything typed since.
     const merge = baseContent.current ? mergeContent(baseContent.current, getValues(), latest.content) : null;
-    showServerContent({ ...latest, content: latest.content }, merge?.content);
-    onConflictRef.current?.({ kept: merge?.kept ?? [], dropped: merge?.dropped ?? [] });
+    const latestCv = { ...latest, content: latest.content };
+    // A merge re-sent onto this very version was rejected again: with a consistent server that
+    // can't happen, so rather than merge and resend forever, the server copy wins this time.
+    if (!merge || mergedOnto.current === latest.version) {
+      showServerContent(latestCv);
+      onConflictRef.current?.({ kept: [], dropped: merge ? [...merge.kept, ...merge.dropped] : [] });
+      return;
+    }
+    if (merge.kept.length > 0) mergedOnto.current = latest.version;
+    showServerContent(latestCv, merge.content);
+    onConflictRef.current?.({ kept: merge.kept, dropped: merge.dropped });
   }, [refetch, queue, getValues, showServerContent]);
 
   // The queue outlives renders: keep its closures current.
@@ -146,6 +157,7 @@ export function useCvAutosave({
         const saved = await updateCv(patch);
         // The server's copy (trimmed, normalised) is what the next edits are based on.
         if (saved.content) baseContent.current = saved.content;
+        mergedOnto.current = null;
         return { version: saved.version };
       },
       onStateChange: setState,

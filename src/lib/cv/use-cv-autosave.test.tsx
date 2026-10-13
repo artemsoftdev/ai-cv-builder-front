@@ -1,5 +1,5 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,7 +78,10 @@ function renderEditor({ debounceMs = 10 } = {}) {
       <Editor callbacks={callbacks} debounceMs={debounceMs} />
     </QueryClientProvider>,
   );
-  return { user, callbacks, summary: () => screen.getByLabelText<HTMLTextAreaElement>("Summary") };
+  const summary = () => screen.getByLabelText<HTMLTextAreaElement>("Summary");
+  // One change event: typing char by char would interleave with the 10 ms debounce.
+  const setSummary = (value: string) => fireEvent.input(summary(), { target: { value } });
+  return { user, callbacks, summary, setSummary };
 }
 
 const patchCalls = (fetchMock: ReturnType<typeof mockFetch>) =>
@@ -117,7 +120,8 @@ describe("useCvAutosave", () => {
 
     await waitFor(() => expect(screen.getByLabelText("Invalid")).toHaveTextContent("true"));
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(patchCalls(fetchMock)).toHaveLength(0);
+    // Asserted on the payload: a save flushed by an earlier test's unmount may still land here.
+    expect(patchCalls(fetchMock).filter(([, init]) => String(init?.body).includes("javascript:"))).toHaveLength(0);
   });
 
   it("loads newer server content (an applied answer) into a clean form", async () => {
@@ -173,9 +177,9 @@ describe("useCvAutosave", () => {
         ? errorResponse(409, "VERSION_CONFLICT", "Stale version", { currentVersion: 3 })
         : jsonResponse({ cv: makeCv({ version: 3, content: content("Edited on my phone") }) }),
     );
-    const { user, summary, callbacks } = renderEditor();
+    const { setSummary, summary, callbacks } = renderEditor();
 
-    await user.type(summary(), " and laptop");
+    setSummary("Original summary and laptop");
 
     await waitFor(() => expect(summary()).toHaveValue("Edited on my phone"));
     expect(callbacks.onConflict).toHaveBeenCalledExactlyOnceWith({ kept: [], dropped: ["summary"] });
@@ -196,9 +200,9 @@ describe("useCvAutosave", () => {
       const body = JSON.parse(String(init.body)) as { content: CvContent };
       return jsonResponse({ cv: makeCv({ version: 4, content: body.content }) });
     });
-    const { user, summary, callbacks } = renderEditor();
+    const { setSummary, summary, callbacks } = renderEditor();
 
-    await user.type(summary(), " and laptop");
+    setSummary("Original summary and laptop");
 
     await waitFor(() => expect(patches).toBe(2));
     await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("saved"));
@@ -208,5 +212,26 @@ describe("useCvAutosave", () => {
     expect(retried.content.contact.headline).toBe("Staff Engineer");
     expect(summary()).toHaveValue("Original summary and laptop");
     expect(callbacks.onConflict).toHaveBeenCalledExactlyOnceWith({ kept: ["summary"], dropped: [] });
+  });
+
+  it("lets the server win instead of resending a merge onto a version that keeps conflicting", async () => {
+    const fetchMock = mockFetch();
+    const remote = content();
+    remote.contact.headline = "Staff Engineer";
+    fetchMock.mockImplementation(async (_input, init) =>
+      init?.method === "PATCH"
+        ? errorResponse(409, "VERSION_CONFLICT", "Stale version", { currentVersion: 3 })
+        : jsonResponse({ cv: makeCv({ version: 3, content: remote }) }),
+    );
+    const { setSummary, summary, callbacks } = renderEditor();
+
+    setSummary("Original summary and laptop");
+
+    await waitFor(() => expect(callbacks.onConflict).toHaveBeenCalledTimes(2));
+    expect(callbacks.onConflict).toHaveBeenNthCalledWith(1, { kept: ["summary"], dropped: [] });
+    expect(callbacks.onConflict).toHaveBeenNthCalledWith(2, { kept: [], dropped: ["summary"] });
+    expect(summary()).toHaveValue("Original summary");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(patchCalls(fetchMock)).toHaveLength(2);
   });
 });
