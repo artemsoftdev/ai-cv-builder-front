@@ -31,14 +31,15 @@ API_INTERNAL_URL=http://localhost:4000 npm run dev   # http://localhost:3000
 is baked into the build, so the Docker image takes it as a build argument (`http://api:4000` in
 compose). See [.env.example](.env.example).
 
-| Script                            | What it does                                               |
-| --------------------------------- | ---------------------------------------------------------- |
-| `npm run dev`                     | dev server (Turbopack)                                     |
-| `npm run build` / `start`         | production build (`output: "standalone"`) / serve it       |
-| `npm run typecheck`               | `next typegen && tsc --noEmit` (route types are generated) |
-| `npm run lint`                    | ESLint (Next, TypeScript, React Hooks/Compiler, Query)     |
-| `npm run format` / `format:check` | Prettier (CI runs the check)                               |
-| `npm test`                        | Vitest + Testing Library (jsdom)                           |
+| Script                            | What it does                                                   |
+| --------------------------------- | -------------------------------------------------------------- |
+| `npm run dev`                     | dev server (Turbopack)                                         |
+| `npm run build` / `start`         | production build (`output: "standalone"`) / serve it           |
+| `npm run typecheck`               | `next typegen && tsc --noEmit` (route types are generated)     |
+| `npm run lint`                    | ESLint (Next, TypeScript, React Hooks/Compiler, Query)         |
+| `npm run format` / `format:check` | Prettier (CI runs the check)                                   |
+| `npm test`                        | Vitest + Testing Library (jsdom)                               |
+| `npm run test:e2e`                | Playwright against the running stack, see [e2e](e2e/README.md) |
 
 ## Layout
 
@@ -64,7 +65,22 @@ src/
 ```
 
 Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks and
-`src/test/fixtures.ts` builds CVs and questions.
+`src/test/fixtures.ts` builds CVs and questions. Browser tests of the whole stack live in
+`e2e/` (Playwright, desktop and phone Chromium): how to run them is in
+[e2e/README.md](e2e/README.md).
+
+## CI
+
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) on pushes to `main` and
+on pull requests, without secrets:
+
+| Job                         | What runs                                                                                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint-typecheck-unit-build` | lint, typecheck, Prettier check, Vitest, `next build`                                                                                                                                                           |
+| `e2e` (after the first)     | checks out the API's `main` next to this repo, starts its compose stack with the fake LLM, runs Playwright on desktop and phone Chromium; on failure it uploads the report and traces and prints the stack logs |
+
+The API repo runs the same browser tests against this repo's `main`, so a change on either side
+is tested against the other side's latest version.
 
 ## Design decisions
 
@@ -128,5 +144,7 @@ Tests sit next to the code (`*.test.ts(x)`); `src/test/http.ts` has fetch mocks 
   the current run started.
 - **Skipping a question** is sent a few seconds later, when its Undo toast closes: the API
   cannot reopen a dismissed question.
-- **Not covered by unit tests:** real layout (sticky bars, wrapping on phones), native
-  `<dialog>` behaviour and the real API; those need browser end-to-end tests.
+- **Browser tests cover the main journeys, not everything:** real layout on a phone, native
+  `<dialog>`, autosave and the API are exercised in `e2e/`, but only in Chromium and only with
+  the fake LLM. Conflicts between two devices, offline autosave and failed generations are
+  tested without a browser (unit tests here, HTTP tests in the API).
