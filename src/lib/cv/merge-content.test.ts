@@ -88,4 +88,22 @@ describe("mergeContent", () => {
     expect(result.content.experience).not.toBe(local.experience);
     expect(result.content).not.toBe(remote);
   });
+
+  it("does not count whitespace the server normalised away as a local edit", () => {
+    const saved = edit((c) => {
+      c.summary = "Led the team.";
+    });
+    const local = edit((c) => {
+      c.summary = "Led the team. ";
+      c.contact.location = "  London ";
+    });
+    const remote = edit((c) => {
+      c.summary = "Led a team of five.";
+    });
+
+    const result = mergeContent(saved, local, remote);
+
+    expect(result).toMatchObject({ kept: [], dropped: [] });
+    expect(result.content.summary).toBe("Led a team of five.");
+  });
 });

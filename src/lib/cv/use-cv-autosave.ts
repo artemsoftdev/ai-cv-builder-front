@@ -92,7 +92,8 @@ export function useCvAutosave({
 
   const showServerContent = useCallback(
     (latest: Cv & { content: CvContent }, shown: CvContent = latest.content) => {
-      const sections = changedSections(getValues(), shown);
+      // What the server changed, not the form's unsaved whitespace the API normalised away.
+      const sections = changedSections(baseContent.current ?? latest.content, latest.content);
       const serverJson = JSON.stringify(latest.content);
       const shownJson = JSON.stringify(shown);
       baseContent.current = latest.content;

@@ -158,6 +158,25 @@ describe("useCvAutosave", () => {
     expect(callbacks.onRemoteUpdate).toHaveBeenCalledWith(["summary"]);
   });
 
+  it("highlights only what the server changed, not whitespace it normalised in our own save", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as { version: number; content: CvContent };
+      return jsonResponse({ cv: makeCv({ version: 2, content: { ...body.content, summary: body.content.summary.trim() } }) });
+    });
+    const { setSummary, callbacks } = renderEditor();
+
+    setSummary("Trailing space ");
+    await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("saved"));
+    const rewritten = content("Trailing space");
+    rewritten.contact.headline = "Staff Engineer";
+    act(() => {
+      queryClient.setQueryData(queryKeys.cv(CV_ID), makeCv({ version: 3, content: rewritten }));
+    });
+
+    await waitFor(() => expect(callbacks.onRemoteUpdate).toHaveBeenCalledExactlyOnceWith(["contact"]));
+  });
+
   it("keeps unsaved local edits when newer server content arrives", async () => {
     mockFetch();
     const { user, summary, callbacks } = renderEditor({ debounceMs: 60_000 });

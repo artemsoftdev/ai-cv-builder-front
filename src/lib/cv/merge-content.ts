@@ -45,7 +45,10 @@ function copy(target: CvContent, source: CvContent, unit: MergeUnit): void {
   else Object.assign(target, { [unit]: structuredClone(source[unit as SectionKey]) });
 }
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+// The API trims and collapses whitespace, so "Led team " typed here equals the saved "Led team".
+const normalized = (value: unknown) =>
+  JSON.stringify(value, (_key, part: unknown) => (typeof part === "string" ? part.replace(/\s+/g, " ").trim() : part));
+const same = (a: unknown, b: unknown) => normalized(a) === normalized(b);
 
 // Three-way merge after VERSION_CONFLICT: local edits win where the server did not change that part.
 export function mergeContent(base: CvContent, local: CvContent, remote: CvContent): MergeResult {
