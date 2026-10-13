@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { CvSummary } from "@/lib/api/types";
+import { showsTargetRole } from "@/lib/cv/target-role";
 import { cn } from "@/lib/utils/cn";
 
 import { CvStatusBadge } from "./cv-status-badge";
@@ -54,10 +55,12 @@ export function CvCard({ cv, onDelete, className }: CvCardProps) {
         </Link>
       </h2>
 
-      <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-fg-muted">
-        <Target aria-hidden="true" className="size-4 shrink-0 text-fg-subtle" />
-        <span className="truncate">{cv.targetRole}</span>
-      </p>
+      {showsTargetRole(title, cv.targetRole) && (
+        <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-fg-muted">
+          <Target aria-hidden="true" className="size-4 shrink-0 text-fg-subtle" />
+          <span className="truncate">{cv.targetRole}</span>
+        </p>
+      )}
 
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-5 text-xs text-fg-subtle">
         {cv.openQuestions > 0 && (

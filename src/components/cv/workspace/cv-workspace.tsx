@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { panelId, tabId } from "@/components/ui/segmented-tabs";
 import type { Cv, CvContent } from "@/lib/api/types";
 import { cvContentSchema } from "@/lib/cv/content-schema";
+import { showsTargetRole } from "@/lib/cv/target-role";
 import { restoreDraft } from "@/lib/cv/drafts";
 import { MERGE_UNIT_LABELS, type MergeUnit } from "@/lib/cv/merge-content";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
@@ -199,11 +200,13 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
                 disabled={cv.busy}
                 headingRef={headingRef}
               />
-              <p className="flex min-w-0 items-center gap-1.5 text-sm text-fg-muted">
-                <Target aria-hidden="true" className="size-4 shrink-0 text-fg-subtle" />
-                <span className="sr-only">Target role:</span>
-                <span className="truncate">{cv.targetRole}</span>
-              </p>
+              {showsTargetRole(pendingTitle ?? cv.title, cv.targetRole) && (
+                <p className="flex min-w-0 items-center gap-1.5 text-sm text-fg-muted">
+                  <Target aria-hidden="true" className="size-4 shrink-0 text-fg-subtle" />
+                  <span className="sr-only">Target role:</span>
+                  <span className="truncate">{cv.targetRole}</span>
+                </p>
+              )}
             </div>
             {isDesktop && (
               <div className="flex shrink-0 items-center gap-4">
