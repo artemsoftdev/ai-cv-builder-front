@@ -7,6 +7,13 @@ import { SegmentedTabs, type SegmentedTabOption } from "@/components/ui/segmente
 
 export type WorkspaceTab = "edit" | "preview" | "questions";
 
+const WORKSPACE_TABS: readonly string[] = ["edit", "preview", "questions"] satisfies WorkspaceTab[];
+
+/** `?tab=` of the CV page (phones): any unknown value means the editor. */
+export function parseWorkspaceTab(value: string | null): WorkspaceTab {
+  return value !== null && WORKSPACE_TABS.includes(value) ? (value as WorkspaceTab) : "edit";
+}
+
 // Below 400px three labels, icons and a count don't fit side by side; the labels win.
 const ICON = "size-4 shrink-0 max-[25rem]:hidden";
 

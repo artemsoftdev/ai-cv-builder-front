@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MessageCircleQuestion, Target } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,7 +31,7 @@ import { DownloadPdfButton, type SaveCheck } from "./download-pdf-button";
 import { MobileActionBar } from "./mobile-action-bar";
 import { SaveStatus } from "./save-status";
 import { TitleEditor } from "./title-editor";
-import { WorkspaceTabs, type WorkspaceTab } from "./workspace-tabs";
+import { parseWorkspaceTab, WorkspaceTabs, type WorkspaceTab } from "./workspace-tabs";
 
 type CvWorkspaceProps = {
   cv: ReadyCv;
@@ -62,7 +63,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const tabsId = useId();
   const tabsRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("edit");
+  // The phone tab lives in the URL (?tab=questions), so a reload or a shared link keeps it.
+  const activeTab = parseWorkspaceTab(useSearchParams().get("tab"));
 
   // Shown until the server confirms the rename (or wins a conflict).
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
@@ -143,7 +145,11 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
       : { role: "tabpanel", id: panelId(tabsId, tab), "aria-labelledby": tabId(tabsId, tab), hidden: activeTab !== tab };
 
   const changeTab = (tab: WorkspaceTab) => {
-    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === "edit") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    // The native History API updates useSearchParams without a server round trip.
+    window.history.replaceState(null, "", url);
     // Start the new panel at its top rather than wherever the previous one was scrolled to.
     const tabs = tabsRef.current;
     if (!tabs) return;
