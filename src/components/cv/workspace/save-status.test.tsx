@@ -12,8 +12,9 @@ const apiError = (status: number, code: string, details?: Record<string, unknown
 
 function renderStatus(state: SaveState, invalid = false) {
   const onRetry = vi.fn();
-  render(<SaveStatus state={state} invalid={invalid} onRetry={onRetry} />);
-  return { onRetry, announced: () => screen.getByRole("status").textContent };
+  const onShowInvalid = vi.fn();
+  render(<SaveStatus state={state} invalid={invalid} onRetry={onRetry} onShowInvalid={onShowInvalid} />);
+  return { onRetry, onShowInvalid, announced: () => screen.getByRole("status").textContent };
 }
 
 describe("SaveStatus", () => {
@@ -41,9 +42,12 @@ describe("SaveStatus", () => {
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 
-  it("asks to fix invalid fields", () => {
-    const { announced } = renderStatus({ status: "saved" }, true);
+  it("asks to fix invalid fields and leads to the first one", async () => {
+    const { announced, onShowInvalid } = renderStatus({ status: "saved" }, true);
     expect(announced()).toBe("Fix the highlighted fields to save");
+
+    await userEvent.click(screen.getByRole("button", { name: "Show the first field to fix" }));
+    expect(onShowInvalid).toHaveBeenCalledTimes(1);
   });
 
   it("offers a reload while a conflict can't be resolved", () => {

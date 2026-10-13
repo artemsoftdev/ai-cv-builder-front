@@ -29,6 +29,7 @@ import { ReviewNotice } from "../review/review-notice";
 import { CvPreview } from "../preview/cv-preview";
 import { BusyBanner } from "./busy-banner";
 import { DownloadPdfButton, type SaveCheck } from "./download-pdf-button";
+import { focusFirstInvalidField } from "./focus-invalid-field";
 import { MobileActionBar } from "./mobile-action-bar";
 import { SaveStatus } from "./save-status";
 import { TitleEditor } from "./title-editor";
@@ -73,6 +74,7 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const tabsId = useId();
   const tabsRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLFormElement>(null);
   const activeTab = parseWorkspaceTab(useSearchParams().get("tab"));
 
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
@@ -122,23 +124,6 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     autosave.saveTitle(title);
   };
 
-  // Claude rewrites and the PDF renders the server copy: save edits first.
-  const ensureSaved = async (): Promise<SaveCheck> => {
-    if (autosave.invalid) return "invalid";
-    return (await autosave.flush()) ? null : "unsaved";
-  };
-
-  const prepareAnswer = async (): Promise<string | null> => {
-    const problem = await ensureSaved();
-    if (problem === "invalid") return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
-    if (problem === "unsaved") return "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
-    return null;
-  };
-
-  const saveStatus = <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={autosave.retry} />;
-  const downloadButton = (
-    <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
-  );
   const openQuestions = cv.questions.filter(needsAnswer).length;
   const showQuestions = !isDesktop || cv.questions.length > 0;
 
@@ -158,6 +143,34 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     const top = tabs.getBoundingClientRect().top + window.scrollY - APP_HEADER_PX;
     if (window.scrollY > top) window.scrollTo({ top });
   };
+
+  const showInvalidField = () => {
+    if (!isDesktop && activeTab !== "edit") changeTab("edit");
+    focusFirstInvalidField(editorRef.current);
+  };
+
+  // Claude rewrites and the PDF renders the server copy: save edits first.
+  const ensureSaved = async (): Promise<SaveCheck> => {
+    if (autosave.invalid) {
+      showInvalidField();
+      return "invalid";
+    }
+    return (await autosave.flush()) ? null : "unsaved";
+  };
+
+  const prepareAnswer = async (): Promise<string | null> => {
+    const problem = await ensureSaved();
+    if (problem === "invalid") return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
+    if (problem === "unsaved") return "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
+    return null;
+  };
+
+  const saveStatus = (
+    <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={autosave.retry} onShowInvalid={showInvalidField} />
+  );
+  const downloadButton = (
+    <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
+  );
 
   return (
     <FormProvider {...form}>
@@ -219,7 +232,7 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
                     <QuestionsHint count={openQuestions} onOpen={() => changeTab("questions")} />
                   )}
                   <ReviewNotice removed={cv.review?.removed ?? []} />
-                  <form noValidate onSubmit={(event) => event.preventDefault()}>
+                  <form ref={editorRef} noValidate onSubmit={(event) => event.preventDefault()}>
                     <CvEditor targetRole={cv.targetRole} readOnly={cv.busy} updatedSections={updatedSections} />
                   </form>
                 </div>

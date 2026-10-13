@@ -14,10 +14,11 @@ type SaveStatusProps = {
   state: SaveState;
   invalid: boolean;
   onRetry: () => void;
+  onShowInvalid?: () => void;
   className?: string;
 };
 
-type Display = { icon: ReactNode; text: string; tone: "muted" | "warning" | "danger"; action?: "Retry" | "Reload" };
+type Display = { icon: ReactNode; text: string; tone: "muted" | "warning" | "danger"; action?: "Retry" | "Reload" | "Show" };
 
 // A rejected save (4xx) fails the same way again: say why instead of offering a blind retry.
 function rejectionReason(error: unknown): string {
@@ -42,12 +43,14 @@ function describe(state: SaveState, invalid: boolean): Display {
         action: "Retry",
       };
   }
-  if (invalid) return { icon: <TriangleAlert className="size-4" />, text: "Fix the highlighted fields to save", tone: "warning" };
+  if (invalid) {
+    return { icon: <TriangleAlert className="size-4" />, text: "Fix the highlighted fields to save", tone: "warning", action: "Show" };
+  }
   if (state.status === "saved") return { icon: <Check className="size-4" />, text: "All changes saved", tone: "muted" };
   return { icon: <Spinner size="sm" />, text: "Saving…", tone: "muted" };
 }
 
-export function SaveStatus({ state, invalid, onRetry, className }: SaveStatusProps) {
+export function SaveStatus({ state, invalid, onRetry, onShowInvalid, className }: SaveStatusProps) {
   const { icon, text, tone, action } = describe(state, invalid);
   // Only problems are announced: "Saving…" / "All changes saved" after every pause would drown everything else.
   const announcement = tone === "muted" && state.status !== "waiting" ? "" : text;
@@ -70,8 +73,14 @@ export function SaveStatus({ state, invalid, onRetry, className }: SaveStatusPro
       <span role="status" className="sr-only">
         {announcement}
       </span>
-      {action && (
-        <Button variant="ghost" size="sm" onClick={onRetry} className="-my-1 px-2.5 text-current">
+      {action && (action !== "Show" || onShowInvalid) && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={action === "Show" ? onShowInvalid : onRetry}
+          aria-label={action === "Show" ? "Show the first field to fix" : undefined}
+          className="-my-1 px-2.5 text-current"
+        >
           {action}
         </Button>
       )}

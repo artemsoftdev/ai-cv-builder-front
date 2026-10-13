@@ -3,8 +3,10 @@
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useId, useState, type ReactNode } from "react";
+import { useFormState } from "react-hook-form";
 
 import { Badge } from "@/components/ui/badge";
+import type { CvContent } from "@/lib/api/types";
 import type { CvSectionKey } from "@/lib/cv/sections";
 import { cn } from "@/lib/utils/cn";
 
@@ -23,6 +25,14 @@ type SectionCardProps = {
 export function SectionCard({ section, title, icon, count, updated = false, headerAddon, children }: SectionCardProps) {
   const [open, setOpen] = useState(true);
   const { readOnly } = useEditor();
+  // A collapsed section would hide the field that blocks saving: open it when one appears.
+  const { errors } = useFormState<CvContent>({ name: section });
+  const hasErrors = Boolean(errors[section]);
+  const [hadErrors, setHadErrors] = useState(hasErrors);
+  if (hasErrors !== hadErrors) {
+    setHadErrors(hasErrors);
+    if (hasErrors) setOpen(true);
+  }
   const headingId = useId();
   const bodyId = useId();
 
