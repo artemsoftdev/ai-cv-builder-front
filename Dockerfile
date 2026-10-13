@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 ARG NODE_IMAGE=node:24-alpine
 
 FROM ${NODE_IMAGE} AS deps
