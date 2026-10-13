@@ -19,7 +19,9 @@ import { CvEditor } from "../editor/cv-editor";
 import { QuestionsPanel } from "../questions/questions-panel";
 import { ReviewProvider } from "../review/review-context";
 import { ReviewNotice } from "../review/review-notice";
+import { CvPreview } from "../preview/cv-preview";
 import { BusyBanner } from "./busy-banner";
+import { DownloadPdfButton, type SaveCheck } from "./download-pdf-button";
 import { SaveStatus } from "./save-status";
 import { TitleEditor } from "./title-editor";
 
@@ -83,11 +85,17 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
     autosave.saveTitle(title);
   };
 
-  /** Claude rewrites the server copy, so local edits must be saved before an answer is sent. */
+  /** The server copy is what Claude rewrites and what the PDF is made from: save edits first. */
+  const ensureSaved = async (): Promise<SaveCheck> => {
+    if (autosave.invalid) return "invalid";
+    return (await autosave.flush()) ? null : "unsaved";
+  };
+
   const prepareAnswer = async (): Promise<string | null> => {
-    if (autosave.invalid) return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
-    const saved = await autosave.flush();
-    return saved ? null : "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
+    const problem = await ensureSaved();
+    if (problem === "invalid") return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
+    if (problem === "unsaved") return "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
+    return null;
   };
 
   const retrySave = () => {
@@ -115,7 +123,15 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
                 <span className="truncate">{cv.targetRole}</span>
               </p>
             </div>
-            <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={retrySave} className="shrink-0" />
+            <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+              <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={retrySave} />
+              <DownloadPdfButton
+                cvId={cv.id}
+                title={pendingTitle ?? cv.title}
+                ensureSaved={ensureSaved}
+                disabled={cv.busy}
+              />
+            </div>
           </div>
         </header>
 
@@ -131,6 +147,8 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
             </form>
           </div>
         </ReviewProvider>
+
+        <CvPreview />
       </div>
     </FormProvider>
   );
