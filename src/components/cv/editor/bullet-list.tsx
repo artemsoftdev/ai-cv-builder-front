@@ -51,7 +51,8 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
                 maxLength={API_LIMITS.content.bullet}
                 placeholder="What you did and what changed because of it"
                 className="flex-1"
-                controlClassName="min-h-11"
+                // Without field-sizing support (Firefox) a one-line box would hide most of the bullet.
+                controlClassName="min-h-11 not-supports-[field-sizing:content]:min-h-24"
                 onKeyDown={(event) => onBulletKeyDown(event, index, full, insert)}
               />
               <div className="flex items-center justify-end">
