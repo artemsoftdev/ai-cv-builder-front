@@ -26,13 +26,14 @@ export type SaveQueueHandlers = {
   /** After a successful PATCH, with what it contained. */
   onSaved?: (patch: CvPatch) => void;
   onConflict?: () => void;
+  /** A PATCH hit `CV_BUSY`; call `resume()` once the job has finished. */
+  onBusy?: () => void;
 };
 
 export type SaveQueueOptions = {
   debounceMs?: number;
   /** Backoff for automatic retries of transient failures (network, 5xx); one entry per attempt. */
   retryDelaysMs?: readonly number[];
-  now?: () => number;
 };
 
 export const AUTOSAVE_DEBOUNCE_MS = 1_000;
@@ -66,7 +67,7 @@ export class SaveQueue {
   #debounceTimer: ReturnType<typeof setTimeout> | null = null;
   #retryTimer: ReturnType<typeof setTimeout> | null = null;
   #failures = 0;
-  #blocked: { reason: "busy" | "conflict"; since: number } | null = null;
+  #blocked: "busy" | "conflict" | null = null;
   #state: SaveState = { status: "saved" };
   #handlers: SaveQueueHandlers | null;
   readonly #options: SaveQueueOptions;
@@ -96,12 +97,7 @@ export class SaveQueue {
   }
 
   get blockedReason(): "busy" | "conflict" | null {
-    return this.#blocked?.reason ?? null;
-  }
-
-  /** When the queue got blocked (ms timestamp), to wait for server data newer than that. */
-  get blockedSince(): number | null {
-    return this.#blocked?.since ?? null;
+    return this.#blocked;
   }
 
   /** Queues a change. Content edits are debounced; `immediate` (title, dismiss) sends right away. */
@@ -144,7 +140,7 @@ export class SaveQueue {
 
   /** The background job that caused `CV_BUSY` has finished: send the queued changes. */
   resume(): void {
-    if (this.#blocked?.reason !== "busy") return;
+    if (this.#blocked !== "busy") return;
     this.#blocked = null;
     if (this.#pending) this.#run();
     else this.#setState({ status: "saved" });
@@ -212,7 +208,7 @@ export class SaveQueue {
       this.#clearDebounceTimer();
       this.#clearRetryTimer();
       this.#pending = null;
-      this.#blocked = { reason: "conflict", since: this.#now() };
+      this.#blocked = "conflict";
       this.#setState({ status: "conflict" });
       this.#handlers?.onConflict?.();
       return;
@@ -224,8 +220,9 @@ export class SaveQueue {
     if (isApiError(error, "CV_BUSY")) {
       this.#clearDebounceTimer();
       this.#clearRetryTimer();
-      this.#blocked = { reason: "busy", since: this.#now() };
+      this.#blocked = "busy";
       this.#setState({ status: "waiting" });
+      this.#handlers?.onBusy?.();
       return;
     }
 
@@ -244,10 +241,6 @@ export class SaveQueue {
   #setState(state: SaveState): void {
     this.#state = state;
     this.#handlers?.onStateChange?.(state);
-  }
-
-  #now(): number {
-    return this.#options.now?.() ?? Date.now();
   }
 
   #clearDebounceTimer(): void {

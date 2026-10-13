@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { panelId, tabId } from "@/components/ui/segmented-tabs";
-import type { CvContent } from "@/lib/api/types";
+import type { Cv, CvContent } from "@/lib/api/types";
 import { cvContentSchema } from "@/lib/cv/content-schema";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
 import type { CvPatch } from "@/lib/cv/save-queue";
@@ -33,10 +33,10 @@ import { WorkspaceTabs, type WorkspaceTab } from "./workspace-tabs";
 
 type CvWorkspaceProps = {
   cv: ReadyCv;
-  dataUpdatedAt: number;
+  /** `useCv().refetch` */
+  refetch: () => Promise<{ isSuccess: boolean; data?: Cv | undefined }>;
   /** Polling failed (network, 5xx); it keeps trying. */
   refetchFailed: boolean;
-  onRetryRefetch: () => void;
   /** Focus the title (the CV just finished generating while the page was open). */
   autoFocus?: boolean;
 };
@@ -47,7 +47,7 @@ const HIGHLIGHT_MS = 2_600;
 const APP_HEADER_PX = 64;
 
 /** Editor for a generated CV, saved automatically. */
-export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, autoFocus = false }: CvWorkspaceProps) {
+export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: CvWorkspaceProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useFocusOnMount(headingRef, autoFocus);
 
@@ -80,7 +80,7 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
 
   const autosave = useCvAutosave({
     cv,
-    dataUpdatedAt,
+    refetch,
     form,
     onSaved: handleSaved,
     onConflict: handleConflict,
@@ -111,13 +111,7 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
     return null;
   };
 
-  const retrySave = () => {
-    // After a conflict there is nothing to resend: what is missing is the latest version.
-    if (autosave.state.status === "conflict") onRetryRefetch();
-    else autosave.retry();
-  };
-
-  const saveStatus = <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={retrySave} />;
+  const saveStatus = <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={autosave.retry} />;
   const downloadButton = (
     <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
   );

@@ -71,9 +71,8 @@ export function CvView({ cvId }: { cvId: string }) {
   return (
     <CvWorkspace
       cv={cv}
-      dataUpdatedAt={query.dataUpdatedAt}
+      refetch={query.refetch}
       refetchFailed={query.isRefetchError}
-      onRetryRefetch={() => void query.refetch()}
       autoFocus={statusChanged}
     />
   );

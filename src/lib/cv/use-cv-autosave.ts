@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import type { Cv, CvContent } from "@/lib/api/types";
@@ -10,11 +10,14 @@ import { cvContentSchema } from "./content-schema";
 import { SaveQueue, type CvPatch, type SaveState } from "./save-queue";
 import { changedSections, type CvSectionKey } from "./sections";
 
+/** `useCv().refetch` (a refetch never throws; failures come back in the result). */
+type RefetchCv = () => Promise<{ isSuccess: boolean; data?: Cv | undefined }>;
+
 type UseCvAutosaveOptions = {
   /** Latest server state of the CV (from `useCv`); must have content. */
   cv: Cv;
-  /** `useCv().dataUpdatedAt`: lets us tell data fetched after a conflict from older data. */
-  dataUpdatedAt: number;
+  /** Reloads the server copy, to recover from `VERSION_CONFLICT` and `CV_BUSY`. */
+  refetch: RefetchCv;
   form: UseFormReturn<CvContent>;
   /** A save hit `VERSION_CONFLICT`; the latest version is loaded into the form next. */
   onConflict?: () => void;
@@ -32,6 +35,7 @@ export type CvAutosave = {
   dismissFlags: (flagIds: string[]) => void;
   /** Sends pending edits now; `true` once the server has everything. */
   flush: () => Promise<boolean>;
+  /** After an error: send again. After a conflict: load the latest version again. */
   retry: () => void;
 };
 
@@ -42,12 +46,13 @@ export type CvAutosave = {
  * - the title and dismissed review flags go through the same queue so they never race it;
  * - newer server content (an AI update) replaces the form only when nothing local is unsaved;
  *   otherwise the next save gets `VERSION_CONFLICT` and the server copy is loaded instead;
+ * - `CV_BUSY` keeps the edits and sends them once a fresh fetch shows the job has finished;
  * - pending edits are sent when the tab is hidden or the editor unmounts, and leaving the page
  *   with unsaved edits asks for confirmation.
  */
 export function useCvAutosave({
   cv,
-  dataUpdatedAt,
+  refetch,
   form,
   onConflict,
   onRemoteUpdate,
@@ -57,21 +62,7 @@ export function useCvAutosave({
   const { mutateAsync: updateCv } = useUpdateCv(cv.id);
   const [state, setState] = useState<SaveState>({ status: "saved" });
   const [invalid, setInvalid] = useState(false);
-
   const [queue] = useState(() => new SaveQueue(cv.version, { debounceMs }));
-  // The queue outlives renders: keep its closures current.
-  useEffect(() => {
-    queue.setHandlers({
-      send: async (patch) => ({ version: (await updateCv(patch)).version }),
-      onStateChange: setState,
-      onSaved,
-      onConflict,
-    });
-  }, [queue, updateCv, onSaved, onConflict]);
-  const onRemoteUpdateRef = useRef(onRemoteUpdate);
-  useEffect(() => {
-    onRemoteUpdateRef.current = onRemoteUpdate;
-  });
 
   // JSON of the content last handed to the queue (or loaded from the server): the baseline
   // that tells "the user changed something" from re-renders and resets.
@@ -79,8 +70,60 @@ export function useCvAutosave({
   // Last JSON the change handler looked at, to skip notifications without a value change.
   const seenJson = useRef<string | null>(null);
   const invalidRef = useRef(false);
+  // After CV_BUSY: set once data fetched after the error has arrived, so `cv.busy` is current.
+  const busyChecked = useRef(false);
+  const onRemoteUpdateRef = useRef(onRemoteUpdate);
+  useEffect(() => {
+    onRemoteUpdateRef.current = onRemoteUpdate;
+  });
 
   const { subscribe, getValues, trigger, reset } = form;
+
+  /** Replaces the form with the server's content and continues from its version. */
+  const applyServerContent = useCallback(
+    (latest: Cv) => {
+      if (!latest.content) return;
+      const sections = changedSections(getValues(), latest.content);
+      const json = JSON.stringify(latest.content);
+      queuedJson.current = json;
+      seenJson.current = json;
+      invalidRef.current = false;
+      setInvalid(false);
+      queue.reset(latest.version);
+      // Never hand the query cache's object to RHF, which mutates its values in place.
+      reset(structuredClone(latest.content));
+      if (sections.length > 0) onRemoteUpdateRef.current?.(sections);
+    },
+    [queue, getValues, reset],
+  );
+
+  const reloadAfterConflict = useCallback(async () => {
+    const result = await refetch();
+    // On failure the status keeps offering "Reload".
+    if (result.isSuccess && result.data && queue.blockedReason === "conflict") applyServerContent(result.data);
+  }, [refetch, queue, applyServerContent]);
+
+  // The queue outlives renders: keep its closures current.
+  useEffect(() => {
+    queue.setHandlers({
+      send: async (patch) => ({ version: (await updateCv(patch)).version }),
+      onStateChange: setState,
+      onSaved,
+      onConflict: () => {
+        onConflict?.();
+        void reloadAfterConflict();
+      },
+      onBusy: () => {
+        busyChecked.current = false;
+        void refetch().then((result) => {
+          busyChecked.current = true;
+          // Still busy: polling runs, and the effect below resumes when the job is done.
+          // Refetch failed: try the PATCH again anyway; it reports what is going on.
+          if (!result.isSuccess || !result.data?.busy) queue.resume();
+        });
+      },
+    });
+  }, [queue, updateCv, refetch, onSaved, onConflict, reloadAfterConflict]);
 
   useEffect(() => {
     queuedJson.current = JSON.stringify(getValues());
@@ -107,36 +150,20 @@ export function useCvAutosave({
     });
   }, [subscribe, getValues, trigger, queue]);
 
-  // Newer server content: load it into the form, unless that would throw away local edits.
+  // Newer server content (an AI update, another device): load it unless that would throw away
+  // local edits. Those go out with the old version, get VERSION_CONFLICT, and the server wins.
   useEffect(() => {
-    const content = cv.content;
-    if (!content) return;
-    if (queue.blockedReason === "conflict") {
-      // Wait for data fetched after the conflict (the update hook refetches on error).
-      if (dataUpdatedAt <= (queue.blockedSince ?? Number.POSITIVE_INFINITY)) return;
-    } else {
-      if (cv.version <= queue.version || queue.hasUnsavedChanges) return;
-      // Invalid edits are not queued but are still the user's work.
-      if (JSON.stringify(getValues()) !== queuedJson.current) return;
-    }
+    if (!cv.content || queue.blockedReason === "conflict") return;
+    if (cv.version <= queue.version || queue.hasUnsavedChanges) return;
+    // Invalid edits are not queued but are still the user's work.
+    if (JSON.stringify(getValues()) !== queuedJson.current) return;
+    applyServerContent(cv);
+  }, [cv, queue, getValues, applyServerContent]);
 
-    const sections = changedSections(getValues(), content);
-    const json = JSON.stringify(content);
-    queuedJson.current = json;
-    seenJson.current = json;
-    invalidRef.current = false;
-    setInvalid(false);
-    queue.reset(cv.version);
-    // Never hand the query cache's object to RHF, which mutates its values in place.
-    reset(structuredClone(content));
-    if (sections.length > 0) onRemoteUpdateRef.current?.(sections);
-  }, [cv.version, cv.content, dataUpdatedAt, queue, getValues, reset]);
-
-  // CV_BUSY: retry once fresh data shows the job has finished.
+  // CV_BUSY: send the kept edits once fresh data shows the job has finished.
   useEffect(() => {
-    if (queue.blockedReason !== "busy" || cv.busy) return;
-    if (dataUpdatedAt > (queue.blockedSince ?? Number.POSITIVE_INFINITY)) queue.resume();
-  }, [cv.busy, dataUpdatedAt, state, queue]);
+    if (queue.blockedReason === "busy" && busyChecked.current && !cv.busy) queue.resume();
+  }, [cv.busy, state, queue]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -164,9 +191,12 @@ export function useCvAutosave({
       saveTitle: (title: string) => queue.schedule({ title }, { immediate: true }),
       dismissFlags: (flagIds: string[]) => queue.schedule({ dismissFlagIds: flagIds }, { immediate: true }),
       flush: () => queue.flush(),
-      retry: () => queue.retry(),
+      retry: () => {
+        if (queue.blockedReason === "conflict") void reloadAfterConflict();
+        else queue.retry();
+      },
     }),
-    [queue],
+    [queue, reloadAfterConflict],
   );
 
   return { state, invalid, ...actions };
