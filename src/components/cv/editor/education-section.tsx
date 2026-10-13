@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newEducationItem } from "@/lib/cv/new-item";
 
+import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
 import { ItemActions } from "./item-actions";
 import { SectionCard } from "./section-card";
@@ -31,6 +32,7 @@ export function EducationSection({ updated }: { updated: boolean }) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
+              data-review-scope
               className="rounded-lg border border-border bg-canvas/60 p-3 sm:p-4"
             >
               <EducationItemEditor
@@ -84,6 +86,7 @@ function EducationItemEditor({ index, itemId, count, onMove, onRemove }: Educati
     <div className="space-y-4">
       <div className="flex items-start gap-2">
         <h3 className="min-w-0 flex-1 pt-2 text-sm font-semibold break-words text-fg">{heading}</h3>
+        <ItemReview itemId={itemId} label={`“${heading}”`} />
         <ItemActions itemId={itemId} index={index} count={count} label={`education ${heading}`} onMove={onMove} onRemove={onRemove} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

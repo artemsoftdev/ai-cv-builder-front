@@ -4,6 +4,7 @@ import { AlignLeft } from "lucide-react";
 
 import { API_LIMITS } from "@/lib/api/types";
 
+import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
 import { SectionCard } from "./section-card";
 
@@ -17,6 +18,7 @@ export function SummarySection({ targetRole, updated }: { targetRole: string; up
         rows={5}
         maxLength={API_LIMITS.content.summary}
         hint={`Two to four sentences on why you fit a ${targetRole} role.`}
+        addon={<ItemReview itemId="summary" label="the summary" />}
       />
     </SectionCard>
   );

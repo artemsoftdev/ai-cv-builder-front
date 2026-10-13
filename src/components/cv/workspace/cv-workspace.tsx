@@ -16,6 +16,9 @@ import { useFocusOnMount } from "@/lib/hooks/use-focus-on-mount";
 
 import { BackToCvsLink } from "../cv-page-shell";
 import { CvEditor } from "../editor/cv-editor";
+import { QuestionsPanel } from "../questions/questions-panel";
+import { ReviewProvider } from "../review/review-context";
+import { ReviewNotice } from "../review/review-notice";
 import { BusyBanner } from "./busy-banner";
 import { SaveStatus } from "./save-status";
 import { TitleEditor } from "./title-editor";
@@ -80,6 +83,13 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
     autosave.saveTitle(title);
   };
 
+  /** Claude rewrites the server copy, so local edits must be saved before an answer is sent. */
+  const prepareAnswer = async (): Promise<string | null> => {
+    if (autosave.invalid) return "Fix the highlighted fields in your CV first: your edits are saved before Claude updates it.";
+    const saved = await autosave.flush();
+    return saved ? null : "Your latest edits aren't saved yet, so Claude can't update the CV right now. Try again in a moment.";
+  };
+
   const retrySave = () => {
     // After a conflict there is nothing to resend: what is missing is the latest version.
     if (autosave.state.status === "conflict") onRetryRefetch();
@@ -111,9 +121,16 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
 
         {cv.busy && <BusyBanner connectionLost={refetchFailed} />}
 
-        <form noValidate onSubmit={(event) => event.preventDefault()}>
-          <CvEditor targetRole={cv.targetRole} readOnly={cv.busy} updatedSections={updatedSections} />
-        </form>
+        <QuestionsPanel cv={cv} prepareAnswer={prepareAnswer} />
+
+        <ReviewProvider review={cv.review} onDismiss={autosave.dismissFlags} disabled={cv.busy}>
+          <div className="space-y-4">
+            <ReviewNotice removed={cv.review?.removed ?? []} />
+            <form noValidate onSubmit={(event) => event.preventDefault()}>
+              <CvEditor targetRole={cv.targetRole} readOnly={cv.busy} updatedSections={updatedSections} />
+            </form>
+          </div>
+        </ReviewProvider>
       </div>
     </FormProvider>
   );

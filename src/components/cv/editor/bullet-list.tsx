@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newBullet } from "@/lib/cv/new-item";
 
+import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
 import { ItemActions } from "./item-actions";
 
@@ -29,7 +30,7 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
       {fields.length > 0 && (
         <ul className="space-y-3 sm:space-y-2">
           {fields.map((field, index) => (
-            <li key={field.key} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-2">
+            <li key={field.key} data-review-scope className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-2">
               <FormTextField
                 name={`experience.${itemIndex}.bullets.${index}.text`}
                 label={`Highlight ${index + 1}`}
@@ -42,15 +43,17 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
                 controlClassName="min-h-11"
                 onKeyDown={(event) => onBulletKeyDown(event, index, full, insert)}
               />
-              <ItemActions
-                itemId={field.id}
-                index={index}
-                count={fields.length}
-                label={`highlight ${index + 1}`}
-                onMove={move}
-                onRemove={() => remove(index)}
-                className="justify-end"
-              />
+              <div className="flex items-center justify-end">
+                <ItemReview itemId={field.id} label={`highlight ${index + 1}`} className="mr-auto sm:mr-0" />
+                <ItemActions
+                  itemId={field.id}
+                  index={index}
+                  count={fields.length}
+                  label={`highlight ${index + 1}`}
+                  onMove={move}
+                  onRemove={() => remove(index)}
+                />
+              </div>
             </li>
           ))}
         </ul>

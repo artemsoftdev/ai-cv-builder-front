@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newLink } from "@/lib/cv/new-item";
 
+import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
 import { SectionCard } from "./section-card";
 
@@ -19,6 +20,7 @@ export function ContactSection({ updated }: { updated: boolean }) {
           name="contact.headline"
           label="Headline"
           hint="A short professional title, usually close to the target role."
+          addon={<ItemReview itemId="headline" label="the headline" />}
           className="sm:col-span-2"
         />
         <FormTextField name="contact.email" label="Email" type="email" inputMode="email" autoComplete="email" />

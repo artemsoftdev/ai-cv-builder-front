@@ -69,7 +69,7 @@ export function FormTextField({
   };
 
   return (
-    <div className={cn("min-w-0 space-y-1.5", className)}>
+    <div data-review-scope className={cn("min-w-0 space-y-1.5", className)}>
       <div className={cn("flex min-h-5 items-center justify-between gap-2", hideLabel && !addon && "sr-only")}>
         <Label htmlFor={id} className={cn(hideLabel && "sr-only")}>
           {label}
