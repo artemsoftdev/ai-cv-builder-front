@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { createTextCv, expect, openCv, test } from "./support/test";
+import { createTextCv, expect, getCv, openCv, test } from "./support/test";
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth);
@@ -29,7 +29,9 @@ test("the workspace on a phone: tabs, bottom action bar and no sideways scrollin
 
   const downloadButton = page.getByRole("button", { name: "Download PDF" });
   await expect(downloadButton).toBeInViewport();
-  await page.getByLabel("Professional summary").fill("Backend developer focused on fast, reliable payment APIs.");
+  const summary = "Backend developer focused on fast, reliable payment APIs.";
+  await page.getByLabel("Professional summary").fill(summary);
+  await expect.poll(async () => (await getCv(page.request, cvId)).content?.summary).toBe(summary);
   await expect(page.getByText("All changes saved")).toBeInViewport();
 
   await previewTab.click();

@@ -72,8 +72,18 @@ export function experienceEntry(page: Page, heading: string) {
     .filter({ has: page.getByRole("heading", { name: heading, exact: true }) });
 }
 
+/** Fails a test on an uncaught exception in the page. */
+export const guestTest = base.extend({
+  page: async ({ page }, provide) => {
+    const errors: Error[] = [];
+    page.on("pageerror", (error) => errors.push(error));
+    await provide(page);
+    expect(errors, "uncaught errors in the page").toEqual([]);
+  },
+});
+
 /** Every test starts signed in as a new user. */
-export const test = base.extend<{ account: { email: string } }>({
+export const test = guestTest.extend<{ account: { email: string } }>({
   account: [
     async ({ page }, provide, testInfo) => {
       await provide({ email: await signUp(page.request, uniqueEmail(testInfo.project.name)) });

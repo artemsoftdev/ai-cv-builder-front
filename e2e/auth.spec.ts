@@ -1,6 +1,4 @@
-import { expect, test } from "@playwright/test";
-
-import { PASSWORD, signUp, uniqueEmail } from "./support/test";
+import { expect, guestTest as test, PASSWORD, signUp, uniqueEmail } from "./support/test";
 
 test.describe("authentication", () => {
   test("signs up, lands on the CV list and logs out", async ({ page }) => {
