@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useState, type RefObject } from "react";
 
-export type ElementSize = { width: number; height: number };
+type ElementSize = { width: number; height: number };
 
 export function useElementSize(ref: RefObject<HTMLElement | null>): ElementSize {
   const [size, setSize] = useState<ElementSize>({ width: 0, height: 0 });

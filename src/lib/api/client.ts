@@ -1,8 +1,8 @@
 import { ApiError, parseErrorBody, parseRetryAfter } from "./errors";
 
-export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
-export type ApiRequestOptions = {
+type ApiRequestOptions = {
   method?: HttpMethod;
   json?: unknown;
   formData?: FormData;

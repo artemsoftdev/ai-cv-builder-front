@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { FieldError } from "./field-error";
 import { Label } from "./label";
 
-export type FieldControlProps = {
+type FieldControlProps = {
   id: string;
   "aria-describedby": string | undefined;
   invalid: boolean;

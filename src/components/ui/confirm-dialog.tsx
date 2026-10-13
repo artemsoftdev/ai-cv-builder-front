@@ -12,7 +12,7 @@ import {
 
 import { Button } from "./button";
 
-export type ConfirmDialogProps = {
+type ConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;

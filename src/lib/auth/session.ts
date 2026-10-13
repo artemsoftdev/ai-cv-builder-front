@@ -2,7 +2,7 @@ import { CSRF_HEADER } from "@/lib/api/client";
 
 import { authPageHref, isAuthPage, LOGIN_PATH } from "./paths";
 
-export const SESSION_CLEAR_PATH = "/auth/session";
+const SESSION_CLEAR_PATH = "/auth/session";
 
 let leaving = false;
 

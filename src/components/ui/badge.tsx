@@ -12,7 +12,7 @@ const tones: Record<BadgeTone, { badge: string; dot: string }> = {
   danger: { badge: "bg-danger-soft text-danger-soft-fg ring-danger/15", dot: "bg-danger" },
 };
 
-export type BadgeProps = ComponentProps<"span"> & {
+type BadgeProps = ComponentProps<"span"> & {
   tone?: BadgeTone;
   dot?: boolean;
   pulse?: boolean;

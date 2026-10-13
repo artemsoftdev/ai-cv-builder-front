@@ -3,7 +3,7 @@ import type { Cv, CvContent } from "@/lib/api/types";
 import { mergeContent, type MergeResult } from "./merge-content";
 
 // Unsaved editor content, kept per tab so a reload, a killed tab or a re-login can restore it.
-export type CvDraft = { version: number; base: CvContent; content: CvContent };
+type CvDraft = { version: number; base: CvContent; content: CvContent };
 
 const DRAFT_PREFIX = "cvb:draft:";
 const OWNER_KEY = "cvb:draft-owner";

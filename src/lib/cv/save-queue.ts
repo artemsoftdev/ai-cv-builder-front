@@ -17,9 +17,9 @@ export type SaveState =
   /** Any other failure; changes are kept. `willRetry` when an automatic retry is scheduled. */
   | { status: "error"; error: unknown; willRetry: boolean };
 
-export type SendOptions = { keepalive: boolean };
+type SendOptions = { keepalive: boolean };
 
-export type SaveQueueHandlers = {
+type SaveQueueHandlers = {
   send: (patch: VersionedCvPatch, options: SendOptions) => Promise<{ version: number }>;
   onStateChange?: (state: SaveState) => void;
   onSaved?: (patch: CvPatch) => void;
@@ -27,12 +27,12 @@ export type SaveQueueHandlers = {
   onBusy?: () => void;
 };
 
-export type SaveQueueOptions = {
+type SaveQueueOptions = {
   debounceMs?: number;
   retryDelaysMs?: readonly number[];
 };
 
-export const AUTOSAVE_DEBOUNCE_MS = 1_000;
+const AUTOSAVE_DEBOUNCE_MS = 1_000;
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000, 30_000] as const;
 const MAX_FLUSH_ROUNDS = 3;
 

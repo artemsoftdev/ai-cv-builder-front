@@ -8,7 +8,7 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
   return isTransientError(error) && failureCount < MAX_QUERY_RETRIES;
 }
 
-export function retryDelay(attempt: number): number {
+function retryDelay(attempt: number): number {
   return Math.min(1_000 * 2 ** attempt, 8_000);
 }
 

@@ -1,7 +1,7 @@
 import type { Bullet, CvLink, EducationItem, ExperienceItem, SkillGroup } from "@/lib/api/types";
 
 // crypto.randomUUID needs a secure context, which a phone opening the app over plain HTTP is not.
-export function newItemId(): string {
+function newItemId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(12));
   return `u_${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }

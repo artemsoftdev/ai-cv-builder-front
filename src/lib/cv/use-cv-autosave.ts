@@ -35,7 +35,7 @@ type UseCvAutosaveOptions = {
   debounceMs?: number;
 };
 
-export type CvAutosave = {
+type CvAutosave = {
   state: SaveState;
   invalid: boolean;
   saveTitle: (title: string) => void;

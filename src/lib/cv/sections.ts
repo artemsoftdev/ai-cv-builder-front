@@ -2,7 +2,7 @@ import type { CvContent, QuestionSection } from "@/lib/api/types";
 
 export type CvSectionKey = QuestionSection;
 
-export const CV_SECTIONS: readonly CvSectionKey[] = ["contact", "summary", "experience", "education", "skills"];
+const CV_SECTIONS: readonly CvSectionKey[] = ["contact", "summary", "experience", "education", "skills"];
 
 export const SECTION_LABELS: Record<CvSectionKey, string> = {
   contact: "Contact",

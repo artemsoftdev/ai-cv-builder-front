@@ -26,7 +26,7 @@ type QuestionsPanelProps = {
 type Announcement = { id: number; text: string; tone: "success" | "error" };
 
 // Skipping can't be undone on the server, so it is only sent once the Undo toast has gone.
-export const SKIP_UNDO_MS = 6_000;
+const SKIP_UNDO_MS = 6_000;
 
 function describeTransition(
   previous: CvQuestion[],

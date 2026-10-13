@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils/cn";
 
 import { Spinner } from "./spinner";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost";
-export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost";
+type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 const base =
   "relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium " +

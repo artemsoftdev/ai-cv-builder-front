@@ -6,7 +6,7 @@ export const CV_LIST_POLL_INTERVAL_MS = 4_000;
 
 type InProgress = Pick<Cv, "status" | "busy">;
 
-export function isCvInProgress(cv: InProgress): boolean {
+function isCvInProgress(cv: InProgress): boolean {
   return cv.status === "generating" || cv.busy;
 }
 

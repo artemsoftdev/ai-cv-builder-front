@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
-export type LabelProps = ComponentProps<"label"> & {
+type LabelProps = ComponentProps<"label"> & {
   optional?: boolean;
 };
 

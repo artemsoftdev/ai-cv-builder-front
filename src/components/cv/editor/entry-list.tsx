@@ -16,7 +16,7 @@ import { SectionCard } from "./section-card";
 type EntryName = "experience" | "education" | "skills";
 type Entry<N extends EntryName> = CvContent[N][number];
 
-export type EntryControls = { index: number; itemId: string; actions: (label: string) => ReactNode };
+type EntryControls = { index: number; itemId: string; actions: (label: string) => ReactNode };
 
 type EntryListProps<N extends EntryName> = {
   name: N;

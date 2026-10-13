@@ -4,10 +4,10 @@ export const HOME_PATH = "/cvs";
 export const NEW_CV_PATH = "/cvs/new";
 export const LOGIN_PATH = "/login";
 export const SIGNUP_PATH = "/signup";
-export const AUTH_PAGES: readonly string[] = [LOGIN_PATH, SIGNUP_PATH];
+const AUTH_PAGES: readonly string[] = [LOGIN_PATH, SIGNUP_PATH];
 
 // Keep in sync with the matcher in src/proxy.ts.
-export const PROTECTED_PREFIXES: readonly string[] = ["/cvs"];
+const PROTECTED_PREFIXES: readonly string[] = ["/cvs"];
 
 export function isAuthPage(pathname: string): boolean {
   return AUTH_PAGES.includes(pathname);

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
-export type AlertTone = "info" | "success" | "warning" | "danger";
+type AlertTone = "info" | "success" | "warning" | "danger";
 
 const tones: Record<AlertTone, { box: string; Icon: typeof Info }> = {
   info: { box: "bg-primary-soft text-primary-soft-fg border-primary/15", Icon: Info },

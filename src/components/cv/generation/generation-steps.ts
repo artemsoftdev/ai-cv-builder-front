@@ -1,6 +1,6 @@
 import type { GenerationStage } from "@/lib/api/types";
 
-export type StepState = "complete" | "current" | "upcoming";
+type StepState = "complete" | "current" | "upcoming";
 
 export type GenerationStep = {
   stage: GenerationStage;
