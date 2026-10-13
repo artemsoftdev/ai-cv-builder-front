@@ -26,13 +26,14 @@ export function getErrorMessage(error: unknown): string {
   }
 }
 
+// The API's own defaults (job-errors.ts): a failed job stores only the code for questions.
 const JOB_ERROR_MESSAGES: Record<JobErrorCode, string> = {
   SOURCE_UNREADABLE: "We couldn't read any text from your source. Try a different PDF or paste the text instead.",
-  LLM_NOT_CONFIGURED: "AI generation is not configured on the server (ANTHROPIC_API_KEY is missing).",
-  LLM_REFUSED: "The AI declined to process this source. Check the content and try again.",
+  LLM_NOT_CONFIGURED: "AI generation is not configured on the server.",
+  LLM_REFUSED: "The AI declined to process this source.",
   LLM_UNAVAILABLE: "The AI service is unavailable right now. Please try again in a few minutes.",
-  LLM_INVALID_OUTPUT: "The AI produced an invalid draft. Retrying usually helps.",
-  INTERNAL: "Something went wrong while generating your CV. Please try again.",
+  LLM_INVALID_OUTPUT: "The AI produced an unusable result. Retrying usually helps.",
+  INTERNAL: "Something went wrong while processing your CV. Please try again.",
 };
 
 export function describeJobError(code: string | null | undefined): string {

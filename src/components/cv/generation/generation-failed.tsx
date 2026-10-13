@@ -26,10 +26,10 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
   useFocusOnMount(headingRef, autoFocus);
   const retry = useRetryCv(cv.id);
 
-  const explanation = describeJobError(cv.error?.code);
+  // The API writes this message for users and it is more specific than the code (e.g. a rejected key).
+  const explanation = cv.error?.message.trim() || describeJobError(cv.error?.code);
   // An unreadable source fails the same way again: offer a fresh start instead.
   const retryable = isRetryableJobError(cv.error?.code);
-  const details = cv.error?.message && cv.error.message !== explanation ? cv.error.message : null;
 
   const handleRetry = () => {
     retry.mutate(undefined, {
@@ -54,12 +54,6 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
           We couldn&apos;t create this CV
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-fg-muted">{explanation}</p>
-        {details && (
-          <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-sm break-words text-fg-muted">
-            <span className="font-medium text-fg">Details: </span>
-            {details}
-          </p>
-        )}
         <p className="mt-3 text-sm break-words text-fg-muted">
           Target role: <span className="font-medium text-fg">{cv.targetRole}</span>
         </p>

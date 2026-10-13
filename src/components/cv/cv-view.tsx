@@ -13,6 +13,27 @@ import { GenerationFailed } from "./generation/generation-failed";
 import { GenerationProgress } from "./generation/generation-progress";
 import { CvWorkspace } from "./workspace/cv-workspace";
 
+// The DTO has no start time for a retried run, so this device remembers when it retried.
+const retryKey = (cvId: string) => `cvb:retry-started:${cvId}`;
+
+function readRetryStart(cvId: string): number | null {
+  try {
+    const value = Number(window.localStorage.getItem(retryKey(cvId)));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRetryStart(cvId: string, value: number | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(retryKey(cvId));
+    else window.localStorage.setItem(retryKey(cvId), String(value));
+  } catch {
+    // Storage blocked: the timer falls back to the creation time.
+  }
+}
+
 export function CvView({ cvId }: { cvId: string }) {
   const query = useCv(cvId);
   const cv = query.data;
@@ -24,7 +45,16 @@ export function CvView({ cvId }: { cvId: string }) {
     setShownStatus(status);
     setStatusChanged(shownStatus !== undefined);
   }
-  const [retryStartedAt, setRetryStartedAt] = useState<number | null>(null);
+  const [retryStartedAt, setRetryStartedAt] = useState(() => (typeof window === "undefined" ? null : readRetryStart(cvId)));
+  const handleRetried = () => {
+    const now = Date.now();
+    writeRetryStart(cvId, now);
+    setRetryStartedAt(now);
+  };
+
+  useEffect(() => {
+    if (status === "ready" || status === "failed") writeRetryStart(cvId, null);
+  }, [cvId, status]);
 
   useEffect(() => {
     if (statusChanged && status === "ready") {
@@ -60,7 +90,7 @@ export function CvView({ cvId }: { cvId: string }) {
     );
   }
   if (cv.status === "failed" || !hasContent(cv)) {
-    return <GenerationFailed cv={cv} onRetried={() => setRetryStartedAt(Date.now())} autoFocus={statusChanged} />;
+    return <GenerationFailed cv={cv} onRetried={handleRetried} autoFocus={statusChanged} />;
   }
   return (
     <CvWorkspace
