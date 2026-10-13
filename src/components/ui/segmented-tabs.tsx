@@ -78,7 +78,7 @@ export function SegmentedTabs<T extends string>({
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium transition-colors",
+              "relative flex h-10 min-w-0 flex-auto items-center justify-center rounded-lg px-3 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring",
               selected ? "text-fg" : "text-fg-muted hover:text-fg",
             )}

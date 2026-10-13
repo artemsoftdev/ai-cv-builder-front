@@ -1,11 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Target } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { MessageCircleQuestion, Target } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { panelId, tabId } from "@/components/ui/segmented-tabs";
 import type { CvContent } from "@/lib/api/types";
 import { cvContentSchema } from "@/lib/cv/content-schema";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
@@ -13,17 +15,21 @@ import type { CvPatch } from "@/lib/cv/save-queue";
 import type { CvSectionKey } from "@/lib/cv/sections";
 import { useCvAutosave } from "@/lib/cv/use-cv-autosave";
 import { useFocusOnMount } from "@/lib/hooks/use-focus-on-mount";
+import { DESKTOP_QUERY, useMediaQuery } from "@/lib/hooks/use-media-query";
 
 import { BackToCvsLink } from "../cv-page-shell";
 import { CvEditor } from "../editor/cv-editor";
+import { needsAnswer } from "../questions/question-target";
 import { QuestionsPanel } from "../questions/questions-panel";
 import { ReviewProvider } from "../review/review-context";
 import { ReviewNotice } from "../review/review-notice";
 import { CvPreview } from "../preview/cv-preview";
 import { BusyBanner } from "./busy-banner";
 import { DownloadPdfButton, type SaveCheck } from "./download-pdf-button";
+import { MobileActionBar } from "./mobile-action-bar";
 import { SaveStatus } from "./save-status";
 import { TitleEditor } from "./title-editor";
+import { WorkspaceTabs, type WorkspaceTab } from "./workspace-tabs";
 
 type CvWorkspaceProps = {
   cv: ReadyCv;
@@ -37,6 +43,8 @@ type CvWorkspaceProps = {
 
 const NO_SECTIONS: ReadonlySet<CvSectionKey> = new Set();
 const HIGHLIGHT_MS = 2_600;
+/** Height of the sticky app header (h-16). */
+const APP_HEADER_PX = 64;
 
 /** Editor for a generated CV, saved automatically. */
 export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, autoFocus = false }: CvWorkspaceProps) {
@@ -49,6 +57,11 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
     defaultValues: structuredClone(cv.content),
     mode: "onChange",
   });
+
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
+  const tabsId = useId();
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("edit");
 
   // Shown until the server confirms the rename (or wins a conflict).
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
@@ -104,12 +117,34 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
     else autosave.retry();
   };
 
+  const saveStatus = <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={retrySave} />;
+  const downloadButton = (
+    <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
+  );
+  const openQuestions = cv.questions.filter(needsAnswer).length;
+
+  // Phones show one panel at a time (tabs); from `lg` everything is visible side by side.
+  const panelProps = (tab: WorkspaceTab) =>
+    isDesktop
+      ? {}
+      : { role: "tabpanel", id: panelId(tabsId, tab), "aria-labelledby": tabId(tabsId, tab), hidden: activeTab !== tab };
+
+  const changeTab = (tab: WorkspaceTab) => {
+    setActiveTab(tab);
+    // Start the new panel at its top rather than wherever the previous one was scrolled to.
+    const tabs = tabsRef.current;
+    if (!tabs) return;
+    const top = tabs.getBoundingClientRect().top + window.scrollY - APP_HEADER_PX;
+    if (window.scrollY > top) window.scrollTo({ top });
+  };
+
   return (
     <FormProvider {...form}>
-      <div className="space-y-6">
+      {/* `data-layout="wide"` lets the app shell use a wider container for this page. */}
+      <div data-layout="wide" className="space-y-5 lg:space-y-6">
         <header className="space-y-3">
           <BackToCvsLink />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
             <div className="min-w-0 flex-1 space-y-1">
               <TitleEditor
                 title={pendingTitle ?? cv.title}
@@ -123,33 +158,73 @@ export function CvWorkspace({ cv, dataUpdatedAt, refetchFailed, onRetryRefetch, 
                 <span className="truncate">{cv.targetRole}</span>
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
-              <SaveStatus state={autosave.state} invalid={autosave.invalid} onRetry={retrySave} />
-              <DownloadPdfButton
-                cvId={cv.id}
-                title={pendingTitle ?? cv.title}
-                ensureSaved={ensureSaved}
-                disabled={cv.busy}
-              />
-            </div>
+            {isDesktop && (
+              <div className="flex shrink-0 items-center gap-4">
+                {saveStatus}
+                {downloadButton}
+              </div>
+            )}
           </div>
         </header>
 
         {cv.busy && <BusyBanner connectionLost={refetchFailed} />}
 
-        <QuestionsPanel cv={cv} prepareAnswer={prepareAnswer} />
+        {!isDesktop && (
+          <WorkspaceTabs
+            ref={tabsRef}
+            idPrefix={tabsId}
+            value={activeTab}
+            onChange={changeTab}
+            openQuestions={openQuestions}
+          />
+        )}
 
-        <ReviewProvider review={cv.review} onDismiss={autosave.dismissFlags} disabled={cv.busy}>
-          <div className="space-y-4">
-            <ReviewNotice removed={cv.review?.removed ?? []} />
-            <form noValidate onSubmit={(event) => event.preventDefault()}>
-              <CvEditor targetRole={cv.targetRole} readOnly={cv.busy} updatedSections={updatedSections} />
-            </form>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+          <div className="min-w-0 space-y-6">
+            <div {...panelProps("questions")}>
+              <QuestionsPanel cv={cv} prepareAnswer={prepareAnswer} showEmptyState={!isDesktop} />
+            </div>
+
+            <div {...panelProps("edit")}>
+              <ReviewProvider review={cv.review} onDismiss={autosave.dismissFlags} disabled={cv.busy}>
+                <div className="space-y-4">
+                  {!isDesktop && openQuestions > 0 && (
+                    <QuestionsHint count={openQuestions} onOpen={() => changeTab("questions")} />
+                  )}
+                  <ReviewNotice removed={cv.review?.removed ?? []} />
+                  <form noValidate onSubmit={(event) => event.preventDefault()}>
+                    <CvEditor targetRole={cv.targetRole} readOnly={cv.busy} updatedSections={updatedSections} />
+                  </form>
+                </div>
+              </ReviewProvider>
+            </div>
           </div>
-        </ReviewProvider>
 
-        <CvPreview />
+          <aside
+            aria-label={isDesktop ? "Preview" : undefined}
+            className="mt-0 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pb-2"
+            {...panelProps("preview")}
+          >
+            <CvPreview />
+          </aside>
+        </div>
+
+        {!isDesktop && <MobileActionBar status={saveStatus} action={downloadButton} />}
       </div>
     </FormProvider>
+  );
+}
+
+function QuestionsHint({ count, onOpen }: { count: number; onOpen: () => void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-2.5 text-sm text-warning-soft-fg">
+      <MessageCircleQuestion aria-hidden="true" className="size-4 shrink-0" />
+      <p className="min-w-0 flex-1">
+        Claude has {count === 1 ? "a question" : `${count} questions`} that can improve your CV.
+      </p>
+      <Button size="sm" variant="secondary" onClick={onOpen} className="-my-1">
+        Answer
+      </Button>
+    </div>
   );
 }

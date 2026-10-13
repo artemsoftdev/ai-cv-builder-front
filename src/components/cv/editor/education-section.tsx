@@ -89,10 +89,16 @@ function EducationItemEditor({ index, itemId, count, onMove, onRemove }: Educati
         <ItemReview itemId={itemId} label={`“${heading}”`} />
         <ItemActions itemId={itemId} index={index} count={count} label={`education ${heading}`} onMove={onMove} onRemove={onRemove} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormTextField name={`education.${index}.degree`} label="Degree" placeholder="e.g. BSc Computer Science" />
-        <FormTextField name={`education.${index}.institution`} label="Institution" />
-        <FormTextField name={`education.${index}.location`} label="Location" className="sm:col-span-2" />
+      {/* Two columns even on phones, so the short date fields share a row. */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
+        <FormTextField
+          name={`education.${index}.degree`}
+          label="Degree"
+          placeholder="e.g. BSc Computer Science"
+          className="col-span-2 sm:col-span-1"
+        />
+        <FormTextField name={`education.${index}.institution`} label="Institution" className="col-span-2 sm:col-span-1" />
+        <FormTextField name={`education.${index}.location`} label="Location" className="col-span-2" />
         <FormTextField name={`education.${index}.startDate`} label="Start" />
         <FormTextField name={`education.${index}.endDate`} label="End" />
         <FormTextField
@@ -102,7 +108,7 @@ function EducationItemEditor({ index, itemId, count, onMove, onRemove }: Educati
           rows={2}
           maxLength={API_LIMITS.content.educationDetails}
           placeholder="Honours, thesis, relevant coursework"
-          className="sm:col-span-2"
+          className="col-span-2"
         />
       </div>
     </div>

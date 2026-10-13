@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { WIDE_PAGE } from "@/components/layout/wide-page";
 
 /**
  * Shell of every signed-in page. The proxy already turned away visitors without a session
@@ -18,7 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <AppHeader />
-      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
+      <main id="main" className={`mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-10 ${WIDE_PAGE}`}>
         {children}
       </main>
     </div>
