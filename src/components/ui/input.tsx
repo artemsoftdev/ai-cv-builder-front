@@ -2,7 +2,6 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
-/** Shared look of text-like controls (Input, Textarea, PasswordInput). */
 export const controlClassName =
   "w-full rounded-lg border border-border bg-surface px-3.5 text-fg shadow-card placeholder:text-fg-subtle " +
   "transition-[border-color,box-shadow] duration-150 hover:border-border-strong " +
@@ -13,7 +12,6 @@ export const controlClassName =
   "text-base sm:text-sm";
 
 export type InputProps = ComponentProps<"input"> & {
-  /** Marks the control invalid (`aria-invalid`), which also switches it to the error style. */
   invalid?: boolean;
 };
 

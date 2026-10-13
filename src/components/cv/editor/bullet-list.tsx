@@ -14,7 +14,6 @@ import { ItemActions } from "./item-actions";
 
 type ExperienceIndex = number;
 
-/** Bullets ("highlights") of one experience entry. */
 export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
   const { control } = useFormContext<CvContent>();
   const { fields, append, insert, remove, move } = useFieldArray({
@@ -72,7 +71,7 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
   );
 }
 
-/** Enter starts a new bullet below (bullets are single-line on the CV anyway). */
+// Enter adds a bullet below: bullets are single lines on the CV.
 function onBulletKeyDown(
   event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
   index: number,

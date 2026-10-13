@@ -1,13 +1,11 @@
 import { isApiError, isTransientError } from "@/lib/api/errors";
 import type { CvContent } from "@/lib/api/types";
 
-/** Everything the editor saves through `PATCH /api/cvs/:id`; the queue adds `version`. */
 export type CvPatch = { title?: string; content?: CvContent; dismissFlagIds?: string[] };
 
 export type VersionedCvPatch = CvPatch & { version: number };
 
 export type SaveState =
-  /** Nothing unsaved. */
   | { status: "saved" }
   /** Changes are waiting for the debounce. */
   | { status: "pending" }
@@ -19,20 +17,16 @@ export type SaveState =
   /** Any other failure; changes are kept. `willRetry` when an automatic retry is scheduled. */
   | { status: "error"; error: unknown; willRetry: boolean };
 
-/** Callbacks; replaceable with `setHandlers` (a React component passes fresh closures). */
 export type SaveQueueHandlers = {
   send: (patch: VersionedCvPatch) => Promise<{ version: number }>;
   onStateChange?: (state: SaveState) => void;
-  /** After a successful PATCH, with what it contained. */
   onSaved?: (patch: CvPatch) => void;
   onConflict?: () => void;
-  /** A PATCH hit `CV_BUSY`; call `resume()` once the job has finished. */
   onBusy?: () => void;
 };
 
 export type SaveQueueOptions = {
   debounceMs?: number;
-  /** Backoff for automatic retries of transient failures (network, 5xx); one entry per attempt. */
   retryDelaysMs?: readonly number[];
 };
 
@@ -40,7 +34,6 @@ export const AUTOSAVE_DEBOUNCE_MS = 1_000;
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000, 30_000] as const;
 const MAX_FLUSH_ROUNDS = 3;
 
-/** Combines two unsent patches: the newer title/content wins, dismissed flags accumulate. */
 export function mergePatches(older: CvPatch | null, newer: CvPatch | null): CvPatch | null {
   if (!older) return newer;
   if (!newer) return older;
@@ -51,15 +44,7 @@ export function mergePatches(older: CvPatch | null, newer: CvPatch | null): CvPa
   return merged;
 }
 
-/**
- * Serialised, debounced writer for one CV. Guarantees:
- * - at most one PATCH in flight; edits made meanwhile are merged and sent next;
- * - every PATCH carries the version returned by the previous one (optimistic locking);
- * - nothing typed is lost on a failed request: it stays queued (except on a version conflict,
- *   where the server copy wins and the caller reloads it).
- *
- * Plain class (no React) so the timing rules can be unit-tested with fake timers.
- */
+// Serialised, debounced writer for one CV: one PATCH in flight, versions chained, failed edits kept.
 export class SaveQueue {
   #version: number;
   #pending: CvPatch | null = null;
@@ -82,7 +67,6 @@ export class SaveQueue {
     this.#handlers = handlers;
   }
 
-  /** Server version the next PATCH is based on. */
   get version(): number {
     return this.#version;
   }
@@ -91,7 +75,6 @@ export class SaveQueue {
     return this.#state;
   }
 
-  /** Something is queued or being sent. */
   get hasUnsavedChanges(): boolean {
     return this.#pending !== null || this.#inFlight !== null;
   }
@@ -100,7 +83,6 @@ export class SaveQueue {
     return this.#blocked;
   }
 
-  /** Queues a change. Content edits are debounced; `immediate` (title, dismiss) sends right away. */
   schedule(patch: CvPatch, { immediate = false }: { immediate?: boolean } = {}): void {
     this.#pending = mergePatches(this.#pending, patch);
     // Busy: sent by resume(). Conflict: dropped by reset(), the server copy wins.
@@ -118,10 +100,6 @@ export class SaveQueue {
     if (!this.#inFlight) this.#setState({ status: "pending" });
   }
 
-  /**
-   * Sends whatever is queued now and waits for it. Resolves `true` once everything is saved,
-   * `false` if that is not possible right now (blocked or the request failed).
-   */
   async flush(): Promise<boolean> {
     for (let round = 0; round < MAX_FLUSH_ROUNDS; round += 1) {
       while (this.#inFlight) await this.#inFlight;
@@ -133,12 +111,10 @@ export class SaveQueue {
     return this.#pending === null && this.#blocked === null && this.#inFlight === null;
   }
 
-  /** Manual "retry" after an error. */
   retry(): void {
     this.#run();
   }
 
-  /** The background job that caused `CV_BUSY` has finished: send the queued changes. */
   resume(): void {
     if (this.#blocked !== "busy") return;
     this.#blocked = null;
@@ -146,10 +122,6 @@ export class SaveQueue {
     else this.#setState({ status: "saved" });
   }
 
-  /**
-   * The editor now shows the server's content at `version` (initial load, an AI update, or
-   * recovery from a conflict): drop anything queued and continue from there.
-   */
   reset(version: number): void {
     this.#clearDebounceTimer();
     this.#clearRetryTimer();
@@ -160,7 +132,6 @@ export class SaveQueue {
     if (!this.#inFlight) this.#setState({ status: "saved" });
   }
 
-  /** Stops timers (pending changes stay queued; call `flush()` first to send them). */
   dispose(): void {
     this.#clearDebounceTimer();
     this.#clearRetryTimer();
@@ -169,7 +140,7 @@ export class SaveQueue {
   #run(): void {
     this.#clearDebounceTimer();
     const handlers = this.#handlers;
-    // Without handlers (not connected yet) the change simply stays queued.
+    // Without handlers the change simply stays queued.
     if (this.#inFlight || this.#blocked || !this.#pending || !handlers) return;
     this.#clearRetryTimer();
 
@@ -177,7 +148,7 @@ export class SaveQueue {
     this.#pending = null;
     const request: VersionedCvPatch = { ...patch, version: this.#version };
     this.#setState({ status: "saving" });
-    // Started from a microtask so `#inFlight` is always assigned before any handler runs.
+    // From a microtask, so #inFlight is assigned before any handler runs.
     this.#inFlight = Promise.resolve()
       .then(() => handlers.send(request))
       .then(
@@ -204,7 +175,6 @@ export class SaveQueue {
     this.#inFlight = null;
 
     if (isApiError(error, "VERSION_CONFLICT")) {
-      // The CV changed elsewhere; our patch is based on stale content. The server copy wins.
       this.#clearDebounceTimer();
       this.#clearRetryTimer();
       this.#pending = null;

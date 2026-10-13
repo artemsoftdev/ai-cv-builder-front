@@ -5,12 +5,10 @@ import type { ReactNode } from "react";
 
 type FadeInProps = {
   children: ReactNode;
-  /** Seconds. */
   delay?: number;
   className?: string;
 };
 
-/** Gentle enter animation for a page or section (skipped for users who prefer reduced motion). */
 export function FadeIn({ children, delay = 0, className }: FadeInProps) {
   return (
     <motion.div

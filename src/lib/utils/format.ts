@@ -10,7 +10,6 @@ const UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ["minute", 60],
 ];
 
-/** "just now", "5 minutes ago", "yesterday", ... */
 export function formatRelativeTime(iso: string, now: number = Date.now()): string {
   const time = Date.parse(iso);
   if (Number.isNaN(time)) return "";
@@ -24,13 +23,11 @@ export function formatRelativeTime(iso: string, now: number = Date.now()): strin
   return relativeTimeFormat.format(Math.round(seconds / 60), "minute");
 }
 
-/** Absolute date for tooltips / `title` attributes. */
 export function formatDateTime(iso: string): string {
   const time = Date.parse(iso);
   return Number.isNaN(time) ? "" : dateTimeFormat.format(time);
 }
 
-/** "45 seconds", "3 minutes", "1 hour" (for Retry-After style messages). */
 export function formatDuration(totalSeconds: number): string {
   if (totalSeconds < 60) {
     const seconds = Math.max(1, Math.round(totalSeconds));
@@ -42,7 +39,6 @@ export function formatDuration(totalSeconds: number): string {
   return hours === 1 ? "1 hour" : `${hours} hours`;
 }
 
-/** "820 KB", "4.2 MB" (file pickers, upload limits). */
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
@@ -51,7 +47,6 @@ export function formatFileSize(bytes: number): string {
   return `${mb < 10 ? Math.round(mb * 10) / 10 : Math.round(mb)} MB`;
 }
 
-/** Stopwatch style "0:42", "3:05", "1:02:09". */
 export function formatElapsed(totalMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(totalMs / 1000));
   const hours = Math.floor(totalSeconds / 3600);

@@ -3,14 +3,9 @@ import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 import { getErrorMessage } from "@/lib/api/error-messages";
 import { getValidationIssues, isApiError } from "@/lib/api/errors";
 
-/** Key of the form-level error (shown above the submit button), see `errors.root.server`. */
 export const SERVER_ERROR = "root.server" as const;
 
-/**
- * Shows an API error on a react-hook-form form: `VALIDATION_ERROR` issues go to their
- * fields (matched by the last segment of `path`, e.g. "body.email" -> "email"), anything
- * else becomes a form-level message.
- */
+// VALIDATION_ERROR issues go to the field named by the last path segment; anything else is form-level.
 export function applyServerError<T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,

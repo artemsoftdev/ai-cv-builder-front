@@ -17,7 +17,6 @@ import { CvPageShell } from "../cv-page-shell";
 
 type GenerationFailedProps = {
   cv: Cv;
-  /** Called when the retry was accepted (the CV is generating again). */
   onRetried?: () => void;
   autoFocus?: boolean;
 };
@@ -30,7 +29,6 @@ export function GenerationFailed({ cv, onRetried, autoFocus = false }: Generatio
   const explanation = describeJobError(cv.error?.code);
   // An unreadable source fails the same way again: offer a fresh start instead.
   const retryable = isRetryableJobError(cv.error?.code);
-  // The server message adds specifics (e.g. which limit was hit); skip it when it says the same.
   const details = cv.error?.message && cv.error.message !== explanation ? cv.error.message : null;
 
   const handleRetry = () => {

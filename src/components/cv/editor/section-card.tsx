@@ -14,20 +14,12 @@ type SectionCardProps = {
   section: CvSectionKey;
   title: string;
   icon: ReactNode;
-  /** Number of entries, shown next to the title. */
   count?: number;
-  /** Briefly highlights the card after the AI changed this section. */
   updated?: boolean;
-  /** Next to the title, outside the toggle button (e.g. review badges). */
   headerAddon?: ReactNode;
   children: ReactNode;
 };
 
-/**
- * Collapsible card for one CV section. Collapsing only hides the body (`hidden`), so the
- * inputs stay registered with the form. While a background job runs the inputs are
- * disabled through the `<fieldset>`; the toggle stays usable.
- */
 export function SectionCard({ section, title, icon, count, updated = false, headerAddon, children }: SectionCardProps) {
   const [open, setOpen] = useState(true);
   const { readOnly } = useEditor();
@@ -76,7 +68,7 @@ export function SectionCard({ section, title, icon, count, updated = false, head
         {headerAddon}
       </div>
       <div id={bodyId} hidden={!open} className="border-t border-border px-4 pt-4 pb-5 sm:px-5">
-        {/* `min-w-0`: a fieldset is min-content wide by default and would overflow on phones. */}
+        {/* A fieldset is min-content wide by default and would overflow on phones. */}
         <fieldset disabled={readOnly} className="min-w-0">
           {children}
         </fieldset>

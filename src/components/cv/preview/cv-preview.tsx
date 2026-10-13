@@ -9,20 +9,13 @@ import { cn } from "@/lib/utils/cn";
 
 import { CvDocument } from "./cv-document";
 
-/** A4 at 96 dpi (210 x 297 mm). */
+// A4 at 96 dpi.
 const PAGE_WIDTH = 794;
 const PAGE_HEIGHT = 1123;
 
-/**
- * Live preview of the editor's current values (including unsaved edits), drawn at real A4
- * size and scaled down to the available width. Page breaks are marked, approximately.
- * Hidden from assistive tech: it repeats the editor's content, and the PDF is the output.
- */
 export function CvPreview({ className }: { className?: string }) {
-  // The form always holds a complete CvContent (its default values are one), so the
-  // partial type useWatch reports for the whole form does not apply here.
+  // The form always holds a complete CvContent.
   const values = useWatch<CvContent>() as CvContent;
-  // Typing stays responsive: the preview catches up when React has time.
   const content = useDeferredValue(values);
   const frameRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);

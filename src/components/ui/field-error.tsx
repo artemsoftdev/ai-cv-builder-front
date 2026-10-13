@@ -3,13 +3,11 @@ import { CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type FieldErrorProps = {
-  /** Referenced from the control's `aria-describedby`. */
   id?: string;
   message?: string;
   className?: string;
 };
 
-/** Inline validation message under a control. Renders nothing without a message. */
 export function FieldError({ id, message, className }: FieldErrorProps) {
   if (!message) return null;
   return (

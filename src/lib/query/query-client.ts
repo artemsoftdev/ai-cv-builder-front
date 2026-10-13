@@ -4,10 +4,6 @@ import { isTransientError, isUnauthorizedError } from "@/lib/api/errors";
 
 export const MAX_QUERY_RETRIES = 3;
 
-/**
- * Retry only what can succeed on a second attempt: network failures and 5xx. A 4xx means
- * the request itself is wrong (or the session is gone) and retrying only delays the error.
- */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   return isTransientError(error) && failureCount < MAX_QUERY_RETRIES;
 }
@@ -17,7 +13,6 @@ export function retryDelay(attempt: number): number {
 }
 
 type CreateQueryClientOptions = {
-  /** Called whenever a query or mutation fails with 401 UNAUTHORIZED. */
   onUnauthorized: () => void;
 };
 

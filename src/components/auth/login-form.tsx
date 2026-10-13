@@ -15,7 +15,6 @@ import { useLogin } from "@/lib/query/auth-hooks";
 import { loginSchema, type LoginValues } from "@/lib/validation/auth";
 
 type LoginFormProps = {
-  /** Already sanitised redirect target (see `safeNextPath`). */
   next: string;
 };
 
@@ -49,7 +48,7 @@ export function LoginForm({ next }: LoginFormProps) {
     }
   });
 
-  // Stay busy while navigating away after a successful login.
+  // Stay busy until the redirect completes.
   const busy = isSubmitting || login.isSuccess;
 
   return (

@@ -14,9 +14,7 @@ const tones: Record<BadgeTone, { badge: string; dot: string }> = {
 
 export type BadgeProps = ComponentProps<"span"> & {
   tone?: BadgeTone;
-  /** Leading status dot. */
   dot?: boolean;
-  /** Animates the dot (e.g. "in progress"); disabled for users who prefer reduced motion. */
   pulse?: boolean;
 };
 

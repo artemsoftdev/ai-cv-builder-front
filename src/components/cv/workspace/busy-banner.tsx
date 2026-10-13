@@ -1,6 +1,5 @@
 import { Spinner } from "@/components/ui/spinner";
 
-/** Shown while a background job (applying an answer) owns the CV and the editor is read-only. */
 export function BusyBanner({ connectionLost }: { connectionLost: boolean }) {
   return (
     <div

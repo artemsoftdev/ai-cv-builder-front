@@ -17,7 +17,7 @@ import { useKeepInViewport } from "./use-keep-in-viewport";
 const SHOW_DELAY_MS = 350;
 
 type TooltipProps = {
-  /** Short label. Visual only: the trigger must carry the same text as its accessible name (e.g. `aria-label`). */
+  /** Visual only: the trigger must carry the same text as its accessible name. */
   content: string;
   children: ReactNode;
   side?: FloatingSide;
@@ -25,11 +25,7 @@ type TooltipProps = {
   className?: string;
 };
 
-/**
- * Hover/keyboard-focus hint for icon buttons. Touch screens have no hover, so it does not
- * open on tap (the tap belongs to the button); use `Popover` for information phone users
- * must be able to reach. Escape dismisses it (WCAG 1.4.13).
- */
+// Hover/focus hint for icon buttons. Touch has no hover: use Popover for what phone users must read.
 export function Tooltip({ content, children, side = "top", align = "center", className }: TooltipProps) {
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

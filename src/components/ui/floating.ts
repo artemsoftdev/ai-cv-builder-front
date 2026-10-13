@@ -1,12 +1,7 @@
 export type FloatingSide = "top" | "bottom";
 export type FloatingAlign = "start" | "center" | "end";
 
-/*
- * Floating bubbles (Popover, Tooltip) are rendered as two boxes inside a `relative` wrapper:
- * - outer: absolutely positioned against the trigger; `useKeepInViewport` nudges it;
- * - inner: the visible bubble; owns the centering translate and the motion animation.
- * Keeping these on separate elements means the three transforms never overwrite each other.
- */
+// Outer box: positioned and nudged into the viewport. Inner box: animated. So transforms never clash.
 
 const outerSide: Record<FloatingSide, string> = {
   top: "bottom-full pb-2",
@@ -28,7 +23,6 @@ export function floatingInnerClasses(side: FloatingSide, align: FloatingAlign): 
   return align === "center" ? `${origin} -translate-x-1/2` : origin;
 }
 
-/** Small enter/exit animation for floating bubbles (spread onto a motion element). */
 export function floatingMotion(side: FloatingSide) {
   const offset = side === "top" ? 4 : -4;
   return {

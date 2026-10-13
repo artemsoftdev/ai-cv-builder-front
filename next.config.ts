@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
-/**
- * Where the Express API lives, as seen from the Next.js server (e.g. http://api:4000 inside
- * docker compose). Rewrites are resolved at build time, so the Dockerfile passes this as a
- * build arg. The browser never talks to the API directly: it calls same-origin `/api/*`,
- * which keeps the session cookie first-party and removes the need for CORS.
- */
+// Rewrites are resolved at build time, so the Docker image takes this as a build arg.
 function resolveApiInternalUrl(): string {
   const raw = process.env.API_INTERNAL_URL ?? "http://localhost:4000";
   let url: URL;
@@ -45,7 +40,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/api/:path*", destination: `${apiInternalUrl}/api/:path*` }];
   },
   async headers() {
-    // API responses carry their own headers (helmet); only decorate pages and assets.
+    // API responses carry their own headers (helmet).
     return [{ source: "/((?!api/).*)", headers: securityHeaders }];
   },
 };

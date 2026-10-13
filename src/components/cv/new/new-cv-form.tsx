@@ -43,7 +43,6 @@ const EXAMPLE_ROLES = [
   "Engineering Manager",
 ];
 
-/** Maps errors of `POST /api/cvs` to the field they are about. */
 function showCreateError(error: unknown, source: SourceMode, setError: UseFormSetError<NewCvValues>): void {
   if (isApiError(error, "FILE_TOO_LARGE")) {
     setError("file", { type: "server", message: "This PDF is larger than 5 MB. Try a smaller export or paste the text instead." });
@@ -53,7 +52,6 @@ function showCreateError(error: unknown, source: SourceMode, setError: UseFormSe
       message: "This file isn't a valid PDF. Export your CV to PDF again, or paste the text instead.",
     });
   } else if (isApiError(error, "UNPROCESSABLE_SOURCE")) {
-    // The API explains what is wrong (encrypted, too many pages, too short, ...).
     const message = getErrorMessage(error);
     setError(source === "pdf" ? "file" : "text", {
       type: "server",
@@ -93,7 +91,6 @@ export function NewCvForm() {
 
   const changeSource = (mode: SourceMode) => {
     setValue("source", mode);
-    // Errors of the other source are no longer relevant (and would block nothing).
     clearErrors(["file", "text"]);
     clearErrors(SERVER_ERROR);
   };
@@ -113,7 +110,6 @@ export function NewCvForm() {
     }
   });
 
-  // Stay busy while navigating to the new CV.
   const busy = isSubmitting || createCv.isSuccess;
   const fileErrorId = `${tabsId}-file-error`;
   const textCounterId = `${tabsId}-text-counter`;
@@ -163,7 +159,6 @@ export function NewCvForm() {
                 inputRef={field.ref}
                 onFileChange={(file) => {
                   field.onChange(file);
-                  // Validate right away: a wrong file should be explained before submitting.
                   if (file) void trigger("file");
                   else clearErrors("file");
                 }}

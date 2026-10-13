@@ -11,13 +11,10 @@ import { SummarySection } from "./summary-section";
 
 type CvEditorProps = {
   targetRole: string;
-  /** Inputs are disabled (a background job is rewriting the CV). */
   readOnly: boolean;
-  /** Sections the AI just changed, highlighted for a moment. */
   updatedSections: ReadonlySet<CvSectionKey>;
 };
 
-/** All CV sections as editable cards. Must be rendered inside the workspace's `FormProvider`. */
 export function CvEditor({ targetRole, readOnly, updatedSections }: CvEditorProps) {
   return (
     <EditorProvider readOnly={readOnly}>

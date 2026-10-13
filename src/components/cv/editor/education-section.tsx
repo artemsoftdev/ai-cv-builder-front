@@ -89,7 +89,6 @@ function EducationItemEditor({ index, itemId, count, onMove, onRemove }: Educati
         <ItemReview itemId={itemId} label={`“${heading}”`} />
         <ItemActions itemId={itemId} index={index} count={count} label={`education ${heading}`} onMove={onMove} onRemove={onRemove} />
       </div>
-      {/* Two columns even on phones, so the short date fields share a row. */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
         <FormTextField
           name={`education.${index}.degree`}

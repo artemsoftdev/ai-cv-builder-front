@@ -3,15 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { CvContent } from "@/lib/api/types";
 import { isEmptyPrintable, toPrintableCv, type PrintableCv, type PrintableEntry } from "@/lib/cv/printable-cv";
 
-/**
- * The CV laid out like the PDF export: a hand-made mirror of the API's react-pdf template
- * (modules/pdf/cv-document.tsx), with the same sizes, spacing and colours, so the preview is
- * what gets downloaded. react-pdf measures in points and lays every view out as a flex column
- * (margins never collapse); the preview draws the A4 sheet in CSS pixels at 96 dpi.
- *
- * Content is untrusted (LLM output / user input): rendered as plain text only, and links are
- * shown as text rather than turned into anchors.
- */
+// Mirror of the API's react-pdf template (modules/pdf/cv-document.tsx). Content is untrusted: text only, no anchors.
 export function CvDocument({ content }: { content: CvContent }) {
   const cv = toPrintableCv(content);
 
@@ -52,10 +44,9 @@ export function CvDocument({ content }: { content: CvContent }) {
   );
 }
 
-/** react-pdf points to CSS pixels (72 pt and 96 px are both one inch). */
+// react-pdf points to CSS pixels (72 pt = 96 px = 1 inch).
 const pt = (points: number) => `${(points * 96) / 72}px`;
 
-/** Print colours of the PDF template: the sheet is paper, whatever the app's theme. */
 const PRINT = { text: "#1f2328", muted: "#59636e", accent: "#1d4f7c", rule: "#c9d1d9" } as const;
 
 const STYLES = {

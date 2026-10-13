@@ -18,10 +18,7 @@ type CvCardProps = {
   className?: string;
 };
 
-/**
- * The whole card is a link to the CV (stretched `::after` over the card), while the delete
- * button sits above it, so there is no interactive element nested inside the link.
- */
+// The whole card is a stretched link; the delete button sits above it, not inside it.
 export function CvCard({ cv, onDelete, className }: CvCardProps) {
   const title = cv.title.trim() || "Untitled CV";
 

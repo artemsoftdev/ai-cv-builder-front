@@ -15,7 +15,6 @@ type PdfDropzoneProps = {
   invalid?: boolean;
   "aria-describedby"?: string;
   disabled?: boolean;
-  /** The file input (for react-hook-form focus management). */
   inputRef?: RefCallback<HTMLInputElement>;
 };
 
@@ -24,11 +23,6 @@ const ACCEPT = "application/pdf,.pdf";
 const hasFiles = (event: { dataTransfer: DataTransfer | null }) =>
   Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
-/**
- * File picker for the CV PDF: drag & drop, click/tap, or keyboard (the real, visually
- * hidden `<input type="file">` is focusable and its label is the drop zone). Validation
- * is left to the form so all messages live in one place.
- */
 export function PdfDropzone({
   id,
   file,
@@ -39,7 +33,7 @@ export function PdfDropzone({
   inputRef,
 }: PdfDropzoneProps) {
   const [dragging, setDragging] = useState(false);
-  // dragenter/dragleave also fire for every child element; count them to know when we really left.
+  // dragenter/dragleave also fire for children; count them to know when we really left.
   const dragDepth = useRef(0);
   const localInputRef = useRef<HTMLInputElement | null>(null);
 

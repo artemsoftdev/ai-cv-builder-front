@@ -1,32 +1,20 @@
 import { ApiError, parseErrorBody, parseRetryAfter } from "./errors";
 
-/**
- * Low-level HTTP client for the same-origin `/api/*` routes (rewritten by Next to the
- * Express API). Responsibilities:
- * - send the session cookie (`credentials: same-origin`) and the CSRF header on writes;
- * - turn every failure into a typed `ApiError` (network failure -> NETWORK_ERROR,
- *   unparseable error body -> INTERNAL) so callers never deal with raw `Response`s.
- */
-
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export type ApiRequestOptions = {
   method?: HttpMethod;
-  /** Serialised as `application/json`. */
   json?: unknown;
-  /** Sent as `multipart/form-data`; the browser sets the boundary. */
   formData?: FormData;
-  /** `Accept` header; JSON unless the caller expects something else (e.g. a PDF). */
   accept?: string;
   signal?: AbortSignal;
 };
 
-/** Required by the API on every non-GET request (docs/API.md, "CSRF"). */
 export const CSRF_HEADER = { name: "X-Requested-With", value: "XMLHttpRequest" } as const;
 
 const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your connection and try again.";
 
-// DOMException is not an `Error` subclass in every runtime, so check the name structurally.
+// DOMException is not an Error subclass in every runtime.
 function isAbortError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
 }
@@ -58,7 +46,6 @@ async function toApiError(response: Response): Promise<ApiError> {
   });
 }
 
-/** Performs the request and returns the (2xx) response; throws `ApiError` otherwise. */
 export async function apiRequest(path: string, options: ApiRequestOptions = {}): Promise<Response> {
   const method = options.method ?? "GET";
   const headers = new Headers({ Accept: options.accept ?? "application/json" });
@@ -79,7 +66,7 @@ export async function apiRequest(path: string, options: ApiRequestOptions = {}):
       headers,
       body,
       credentials: "same-origin",
-      // Polling must always see fresh state, never a cached copy.
+      // Polling must always see fresh state.
       cache: "no-store",
       signal: options.signal,
     });
@@ -92,7 +79,6 @@ export async function apiRequest(path: string, options: ApiRequestOptions = {}):
   return response;
 }
 
-/** JSON request/response. Resolves to `undefined` for 204 No Content. */
 export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const response = await apiRequest(path, options);
   if (response.status === 204) return undefined as T;
@@ -109,15 +95,13 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
 
 export type DownloadedFile = { blob: Blob; filename: string | null };
 
-/** Binary download (e.g. the PDF export), with the filename from `Content-Disposition`. */
 export async function apiFetchBlob(path: string, options: ApiRequestOptions = {}): Promise<DownloadedFile> {
-  // The payload is binary but errors still come back as JSON, so accept anything.
+  // The payload is binary, but errors still come back as JSON.
   const response = await apiRequest(path, { accept: "*/*", ...options });
   const blob = await response.blob();
   return { blob, filename: parseContentDispositionFilename(response.headers.get("Content-Disposition")) };
 }
 
-/** Extracts a safe filename from a `Content-Disposition` header (RFC 6266, incl. `filename*`). */
 export function parseContentDispositionFilename(header: string | null): string | null {
   if (!header) return null;
   let name: string | null = null;

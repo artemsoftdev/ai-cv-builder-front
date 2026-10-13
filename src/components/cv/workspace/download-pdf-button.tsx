@@ -14,14 +14,9 @@ export type SaveCheck = "invalid" | "unsaved" | null;
 type DownloadPdfButtonProps = {
   cvId: string;
   title: string;
-  /** Saves pending edits first: the PDF is rendered from the server copy. */
   ensureSaved: () => Promise<SaveCheck>;
 } & Pick<ButtonProps, "size" | "variant" | "className" | "disabled">;
 
-/**
- * Saves pending edits, fetches the PDF and hands it to the browser as a download (an object
- * URL on a temporary `<a download>`, which also works on iOS Safari).
- */
 export function DownloadPdfButton({ cvId, title, ensureSaved, ...buttonProps }: DownloadPdfButtonProps) {
   const download = useDownloadCvPdf(cvId);
   const [saving, setSaving] = useState(false);

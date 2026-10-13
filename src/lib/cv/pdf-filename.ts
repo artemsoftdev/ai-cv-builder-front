@@ -1,4 +1,3 @@
-/** Fallback download name when the server sends no usable `Content-Disposition`. */
 export function pdfFilename(title: string): string {
   const base = title
     .normalize("NFKC")

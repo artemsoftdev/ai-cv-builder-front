@@ -2,7 +2,6 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
-/** Placeholder block for loading content. Size it with className (e.g. "h-4 w-32"). */
 export function Skeleton({ className, ...props }: ComponentProps<"div">) {
   return (
     <div

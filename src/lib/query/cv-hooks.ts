@@ -8,23 +8,16 @@ import { saveFile } from "@/lib/utils/save-file";
 import { queryKeys } from "./keys";
 import { getCvListRefetchInterval, getCvRefetchInterval } from "./polling";
 
-// ---------------------------------------------------------------------------- queries
-
-/** All CVs of the user, newest first. Polls while any of them is generating/busy. */
 export function useCvs() {
   return useQuery({
     queryKey: queryKeys.cvs,
     queryFn: ({ signal }) => cvsApi.list(signal),
-    // Cheap request, and statuses change in the background: refresh whenever the list is shown.
+    // Cheap request whose statuses change in the background: refresh whenever the list is shown.
     staleTime: 0,
     refetchInterval: (query) => getCvListRefetchInterval(query.state.data, query.state.error),
   });
 }
 
-/**
- * One CV. Polls every 1.5 s while `status === 'generating' || busy` and stops once it
- * settles; since all progress lives on the server, a reload simply resumes polling.
- */
 export function useCv(id: string) {
   return useQuery({
     queryKey: queryKeys.cv(id),
@@ -33,21 +26,12 @@ export function useCv(id: string) {
   });
 }
 
-// ---------------------------------------------------------------------------- cache helpers
-
-/** Stores a CV returned by a mutation and marks the list (which summarises it) stale. */
 function storeCv(queryClient: QueryClient, cv: Cv): void {
   queryClient.setQueryData(queryKeys.cv(cv.id), cv);
   void queryClient.invalidateQueries({ queryKey: queryKeys.cvs });
 }
 
-/**
- * Shared lifecycle of mutations returning `{ cv }`:
- * - before sending, cancel an in-flight GET of the same CV, otherwise its (older) response
- *   could land after ours and e.g. hide `busy: true`, which would stop polling;
- * - on success, the response is the new truth;
- * - on failure (VERSION_CONFLICT, CV_BUSY, ...) refetch so the UI shows the server state.
- */
+// Cancel in-flight GETs first: an older response landing after ours could hide `busy` and stop polling.
 function useCvMutation<TVariables>(cvId: string, mutationFn: (variables: TVariables) => Promise<Cv>) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -62,9 +46,6 @@ function useCvMutation<TVariables>(cvId: string, mutationFn: (variables: TVariab
   });
 }
 
-// ---------------------------------------------------------------------------- mutations
-
-/** `mutate({ targetRole, text })` or `mutate({ targetRole, file })`; resolves to the new CV (202, generating). */
 export function useCreateCv() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -73,24 +54,20 @@ export function useCreateCv() {
   });
 }
 
-/** `mutate({ version, title?, content?, dismissFlagIds? })`. Errors: VERSION_CONFLICT, CV_BUSY, VALIDATION_ERROR. */
 export function useUpdateCv(cvId: string) {
   return useCvMutation(cvId, (patch: UpdateCvInput) => cvsApi.update(cvId, patch));
 }
 
-/** `mutate()`; only valid for a `failed` CV. */
 export function useRetryCv(cvId: string) {
   return useCvMutation(cvId, () => cvsApi.retry(cvId));
 }
 
-/** `mutate({ questionId, answer })`; the CV becomes `busy` while the answer is applied. */
 export function useAnswerQuestion(cvId: string) {
   return useCvMutation(cvId, ({ questionId, answer }: { questionId: string; answer: string }) =>
     cvsApi.answerQuestion(cvId, questionId, answer),
   );
 }
 
-/** `mutate(questionId)` */
 export function useDismissQuestion(cvId: string) {
   return useCvMutation(cvId, (questionId: string) => cvsApi.dismissQuestion(cvId, questionId));
 }
@@ -99,10 +76,7 @@ type DeleteContext = { removed: CvSummary | undefined; index: number };
 
 const deleteCvMutationKey = ["cvs", "delete"] as const;
 
-/**
- * `mutate(cvId)`. Optimistically removes the CV from the list and puts it back (at the same
- * position) if the request fails. A 404 counts as success: the CV is gone either way.
- */
+// Optimistic removal, restored at the same position on failure; 404 counts as success.
 export function useDeleteCv() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -135,8 +109,7 @@ export function useDeleteCv() {
       queryClient.removeQueries({ queryKey: queryKeys.cv(cvId) });
     },
     onSettled: async () => {
-      // With several deletes in flight, refetching after the first would bring back the
-      // others for a moment; resync once, after the last one.
+      // Resync once, after the last of several parallel deletes.
       if (queryClient.isMutating({ mutationKey: deleteCvMutationKey }) === 1) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.cvs });
       }
@@ -144,7 +117,6 @@ export function useDeleteCv() {
   });
 }
 
-/** `mutate(fallbackFilename)`: downloads the A4 PDF and hands it to the browser. Errors: CV_NOT_READY. */
 export function useDownloadCvPdf(cvId: string) {
   return useMutation({
     mutationFn: async (fallbackFilename: string) => {

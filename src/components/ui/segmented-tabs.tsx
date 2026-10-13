@@ -9,14 +9,11 @@ export type SegmentedTabOption<T extends string> = {
   value: T;
   label: ReactNode;
   icon?: ReactNode;
-  /** Small trailing element, e.g. a count. */
   badge?: ReactNode;
 };
 
 type SegmentedTabsProps<T extends string> = {
-  /** Accessible name of the tab list. */
   label: string;
-  /** Prefix for the tab / panel ids, see `tabId` and `panelId`. */
   idPrefix: string;
   options: readonly SegmentedTabOption<T>[];
   value: T;
@@ -27,12 +24,7 @@ type SegmentedTabsProps<T extends string> = {
 export const tabId = (idPrefix: string, value: string) => `${idPrefix}-tab-${value}`;
 export const panelId = (idPrefix: string, value: string) => `${idPrefix}-panel-${value}`;
 
-/**
- * Segmented control with tab semantics (WAI-ARIA tabs, automatic activation): arrow keys,
- * Home and End move between options. The selected pill slides between options (motion
- * `layoutId`). Render the panels with `role="tabpanel"`, `id={panelId(...)}` and
- * `aria-labelledby={tabId(...)}`.
- */
+// WAI-ARIA tabs with automatic activation; label the panels with tabId() and panelId().
 export function SegmentedTabs<T extends string>({
   label,
   idPrefix,

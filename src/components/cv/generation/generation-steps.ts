@@ -5,7 +5,6 @@ export type StepState = "complete" | "current" | "upcoming";
 export type GenerationStep = {
   stage: GenerationStage;
   label: string;
-  /** Shown under the current step. */
   description: string;
   state: StepState;
 };
@@ -29,10 +28,6 @@ const STEP_COPY: Record<GenerationStage, { label: string; description: string }>
   done: { label: "Ready to review", description: "Saving your draft…" },
 };
 
-/**
- * Steps of the generation stepper. "Reading your scanned PDF" only applies to scanned PDFs,
- * so it is listed only when the CV is (or was seen) in that stage.
- */
 export function getGenerationSteps(stage: GenerationStage, sawExtracting: boolean): GenerationStep[] {
   const currentIndex = STAGE_ORDER.indexOf(stage);
   return STAGE_ORDER.filter((candidate) => candidate !== "extracting" || sawExtracting || stage === "extracting").map(

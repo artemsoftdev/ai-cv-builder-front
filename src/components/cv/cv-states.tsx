@@ -9,7 +9,6 @@ import { HOME_PATH } from "@/lib/auth/paths";
 
 import { CvPageShell } from "./cv-page-shell";
 
-/** The CV does not exist, or belongs to someone else (the API answers 404 in both cases). */
 export function CvNotFound() {
   return (
     <CvPageShell>

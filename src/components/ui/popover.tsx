@@ -45,25 +45,12 @@ function usePopoverContext(component: string): PopoverContextValue {
 
 type PopoverProps = {
   children: ReactNode;
-  /** Controlled mode (optional). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
 };
 
-/**
- * Click/tap-to-toggle bubble anchored to its trigger (a "toggletip"). Works the same with a
- * mouse, a finger and a keyboard: Escape closes and returns focus to the trigger, clicking
- * outside or tabbing away closes. Not a modal; content may contain links or buttons.
- *
- * Rendered inline (no portal): avoid `overflow-hidden` ancestors that would clip it.
- *
- * @example
- * <Popover>
- *   <PopoverTrigger aria-label="Why was this flagged?"><Info /></PopoverTrigger>
- *   <PopoverContent>"40%" does not appear in your source.</PopoverContent>
- * </Popover>
- */
+// Rendered inline (no portal): avoid overflow-hidden ancestors that would clip it.
 export function Popover({ children, open: controlledOpen, onOpenChange, className }: PopoverProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
@@ -143,10 +130,7 @@ type PopoverContentProps = {
   className?: string;
 };
 
-/**
- * Rendered as `<span>`s so a Popover can sit inside text (e.g. next to a bullet in a `<p>`);
- * keep its content to phrasing content: text, links, buttons.
- */
+// Spans, so a Popover can sit inside text; keep its content to phrasing content.
 export function PopoverContent({ children, side = "bottom", align = "center", className }: PopoverContentProps) {
   const { open, triggerId, contentId } = usePopoverContext("PopoverContent");
   const outerRef = useRef<HTMLSpanElement>(null);

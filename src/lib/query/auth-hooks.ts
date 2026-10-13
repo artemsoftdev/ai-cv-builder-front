@@ -7,7 +7,6 @@ import { leaveTo } from "@/lib/auth/session";
 
 import { queryKeys } from "./keys";
 
-/** The signed-in user. A 401 here triggers the global redirect to /login. */
 export function useMe() {
   return useQuery({
     queryKey: queryKeys.me,
@@ -28,17 +27,14 @@ function useSessionStart(mutationFn: (credentials: Credentials) => Promise<User>
   });
 }
 
-/** `mutate({ email, password })`; errors: INVALID_CREDENTIALS, RATE_LIMITED, VALIDATION_ERROR. */
 export function useLogin() {
   return useSessionStart(authApi.login);
 }
 
-/** `mutate({ email, password })`; errors: EMAIL_TAKEN, RATE_LIMITED, VALIDATION_ERROR. */
 export function useSignup() {
   return useSessionStart(authApi.signup);
 }
 
-/** Ends the session server-side, then reloads into /login with an empty cache. */
 export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({

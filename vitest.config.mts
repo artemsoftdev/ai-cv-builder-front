@@ -9,7 +9,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     restoreMocks: true,
-    // user-event + jsdom tests take ~100 ms each, but several seconds on a loaded machine.
+    // user-event + jsdom tests take several seconds on a loaded machine.
     testTimeout: 15_000,
     unstubGlobals: true,
   },

@@ -3,7 +3,6 @@ import type { CvContact, CvContent } from "@/lib/api/types";
 type ContactKey = keyof CvContact;
 type SectionKey = Exclude<keyof CvContent, "contact">;
 
-/** The parts of a CV that are merged independently: each contact field, and each other section. */
 export type MergeUnit = `contact.${ContactKey}` | SectionKey;
 
 const CONTACT_KEYS: readonly ContactKey[] = ["fullName", "headline", "email", "phone", "location", "links"];
@@ -25,9 +24,7 @@ export const MERGE_UNIT_LABELS: Record<MergeUnit, string> = {
 
 export type MergeResult = {
   content: CvContent;
-  /** Units whose local edit was kept on top of the newer server content. */
   kept: MergeUnit[];
-  /** Units changed both locally and on the server: the server copy won. */
   dropped: MergeUnit[];
 };
 
@@ -50,13 +47,7 @@ function copy(target: CvContent, source: CvContent, unit: MergeUnit): void {
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-/**
- * Three-way merge after `VERSION_CONFLICT`. `base` is the server content the local edits
- * started from, `remote` the newer server content. Local changes to parts the other side did
- * not touch are kept; when both changed the same part differently the server copy wins (it is
- * an AI update or an edit from another device, and there is no sensible way to combine two
- * versions of one bullet list). Lists are merged as a whole because items can be reordered.
- */
+// Three-way merge after VERSION_CONFLICT: local edits win where the server did not change that part.
 export function mergeContent(base: CvContent, local: CvContent, remote: CvContent): MergeResult {
   const content = structuredClone(remote);
   const kept: MergeUnit[] = [];

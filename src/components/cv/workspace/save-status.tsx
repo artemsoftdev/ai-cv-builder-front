@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils/cn";
 
 type SaveStatusProps = {
   state: SaveState;
-  /** The form has edits that fail validation (they are not being saved). */
   invalid: boolean;
   onRetry: () => void;
   className?: string;
@@ -37,7 +36,6 @@ function describe(state: SaveState, invalid: boolean): Display {
   return { icon: <Spinner size="sm" />, text: "Saving…", tone: "muted" };
 }
 
-/** Autosave indicator. A polite live region, so screen reader users hear failures too. */
 export function SaveStatus({ state, invalid, onRetry, className }: SaveStatusProps) {
   const { icon, text, tone, retry } = describe(state, invalid);
   return (

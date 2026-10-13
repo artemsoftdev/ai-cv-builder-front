@@ -6,7 +6,6 @@ import { PdfDropzone } from "./pdf-dropzone";
 
 const pdf = new File([new Uint8Array(1_500)], "jane.pdf", { type: "application/pdf" });
 
-/** A drag event carrying files, as the browser would send it. */
 function dragEvent(type: "dragEnter" | "dragOver" | "drop", target: Element, files: File[]) {
   const event = createEvent[type](target);
   Object.defineProperty(event, "dataTransfer", {

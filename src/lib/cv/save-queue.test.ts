@@ -44,7 +44,6 @@ function setup(version = 1) {
   return { queue, requests, request, states, onConflict, onSaved };
 }
 
-/** Lets the queue's promise chains run. */
 const settle = () => vi.advanceTimersByTimeAsync(0);
 
 beforeEach(() => {

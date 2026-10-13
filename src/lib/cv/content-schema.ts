@@ -2,12 +2,7 @@ import { z } from "zod";
 
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 
-/**
- * Client-side mirror of the API's content rules (docs/API.md "Content limits", and
- * `cv-content.schema.ts` in the API). Autosave only sends content that passes this schema,
- * so a typo never turns into a 400 from the server. No transforms: the editor keeps exactly
- * what the user typed and the server does the trimming/normalising.
- */
+// Mirror of the API's content rules, so autosave never sends what the API would reject. No transforms.
 
 const L = API_LIMITS.content;
 
@@ -17,13 +12,11 @@ const text = (max: number = L.string) => z.string().max(max, tooLong(max));
 const HAS_SCHEME = /^[a-z][a-z\d+.-]*:/i;
 const LINK_SCHEMES = new Set(["http:", "https:", "mailto:"]);
 
-/** Same rule as the API: either no scheme ("github.com/jane") or http(s)/mailto. */
 export function isAllowedLinkUrl(value: string): boolean {
   const scheme = HAS_SCHEME.exec(value.trim())?.[0].toLowerCase();
   return scheme === undefined || LINK_SCHEMES.has(scheme);
 }
 
-/** Ids are referenced by review flags, evidence and questions; the API enforces this format. */
 const itemId = z
   .string()
   .min(1)
@@ -79,7 +72,6 @@ export const cvContentSchema = z.object({
   skills: z.array(skillGroupSchema).max(L.skillGroups),
 }) satisfies z.ZodType<CvContent, CvContent>;
 
-/** PATCH `title`: 1-120 characters after trimming (same as the API). */
 export const CV_TITLE_MAX = 120;
 export const cvTitleSchema = z
   .string()

@@ -16,7 +16,6 @@ export function BackToCvsLink({ className }: { className?: string }) {
   );
 }
 
-/** Narrow centred column with a way back to the list (progress, failure and error states). */
 export function CvPageShell({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-xl space-y-6">

@@ -13,16 +13,11 @@ import { GenerationFailed } from "./generation/generation-failed";
 import { GenerationProgress } from "./generation/generation-progress";
 import { CvWorkspace } from "./workspace/cv-workspace";
 
-/**
- * `/cvs/[id]`: one polled query drives everything (generating -> progress, failed -> retry,
- * ready -> editor). No state lives only in the browser, so a reload resumes where it was.
- */
 export function CvView({ cvId }: { cvId: string }) {
   const query = useCv(cvId);
   const cv = query.data;
   const status = cv?.status;
 
-  // When the CV changes state while it is open, the new view takes focus (see `autoFocus`).
   const [shownStatus, setShownStatus] = useState<CvStatus | undefined>(status);
   const [statusChanged, setStatusChanged] = useState(false);
   if (status !== shownStatus) {
@@ -64,7 +59,6 @@ export function CvView({ cvId }: { cvId: string }) {
       />
     );
   }
-  // `ready` always comes with content; treat anything else as a failed generation.
   if (cv.status === "failed" || !hasContent(cv)) {
     return <GenerationFailed cv={cv} onRetried={() => setRetryStartedAt(Date.now())} autoFocus={statusChanged} />;
   }

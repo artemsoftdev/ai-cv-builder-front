@@ -4,7 +4,6 @@ import { API_LIMITS } from "@/lib/api/types";
 
 const { min: PASSWORD_MIN, max: PASSWORD_MAX } = API_LIMITS.password;
 
-// Mirrors the API rules (email trimmed, password 8-128) so most mistakes never leave the browser.
 const email = z
   .string()
   .trim()

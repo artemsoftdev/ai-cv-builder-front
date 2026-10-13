@@ -4,7 +4,6 @@ const sizes = { sm: "size-4", md: "size-5", lg: "size-8" } as const;
 
 type SpinnerProps = {
   size?: keyof typeof sizes;
-  /** Announced to screen readers. Omit when the surrounding element already says what is loading. */
   label?: string;
   className?: string;
 };

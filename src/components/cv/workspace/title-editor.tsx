@@ -10,16 +10,10 @@ import { CV_TITLE_MAX, cvTitleSchema } from "@/lib/cv/content-schema";
 type TitleEditorProps = {
   title: string;
   onSave: (title: string) => void;
-  /** No renaming while a background job owns the CV. */
   disabled: boolean;
-  /** The heading, for focus management by the page. */
   headingRef: RefObject<HTMLHeadingElement | null>;
 };
 
-/**
- * The CV title as the page heading; activating it turns it into an input. Enter or leaving
- * the field saves, Escape cancels. An empty title is never saved.
- */
 export function TitleEditor({ title, onSave, disabled, headingRef }: TitleEditorProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +23,6 @@ export function TitleEditor({ title, onSave, disabled, headingRef }: TitleEditor
   const finish = () => {
     setDraft(null);
     setError(null);
-    // Back to the control that started editing, once it is rendered again.
     requestAnimationFrame(() => buttonRef.current?.focus());
   };
 

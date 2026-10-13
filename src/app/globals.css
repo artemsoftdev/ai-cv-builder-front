@@ -1,11 +1,6 @@
 @import "tailwindcss";
 
-/*
- * Design tokens. Everything visual goes through these semantic names so components never
- * hard-code palette values: `bg-canvas`, `bg-surface`, `text-fg-muted`, `border-border`,
- * `bg-primary`, `text-primary-soft-fg`, `shadow-card`, ...
- * Calm cool-neutral greys + a single violet accent.
- */
+/* Semantic tokens: components never hard-code palette values. */
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -44,7 +39,6 @@
   --shadow-card: 0 1px 2px oklch(0.22 0.02 286 / 0.04), 0 1px 3px oklch(0.22 0.02 286 / 0.06);
   --shadow-elevated: 0 12px 32px -12px oklch(0.22 0.02 286 / 0.22), 0 2px 6px oklch(0.22 0.02 286 / 0.06);
 
-  /* A CV section the AI just rewrote: a soft accent glow that fades out. */
   --animate-section-updated: section-updated 2.4s ease-out;
 
   @keyframes section-updated {
@@ -70,7 +64,6 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* One consistent, clearly visible focus ring for keyboard users. */
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -82,10 +75,7 @@
   }
 }
 
-/*
- * Native <dialog> open/close transitions (used by ConfirmDialog). `allow-discrete` lets
- * display/overlay transition so the exit animation is visible too.
- */
+/* `allow-discrete` lets display/overlay transition, so the dialog's exit animation is visible. */
 @layer components {
   .app-dialog {
     opacity: 0;
@@ -132,11 +122,7 @@
   }
 }
 
-/*
- * Reduced motion: JS animations are handled by <MotionConfig reducedMotion="user">,
- * decorative CSS animations use the `motion-safe:` variant, spinners keep spinning
- * (they convey state). Only the dialog transition needs an explicit opt-out.
- */
+/* JS animations follow <MotionConfig reducedMotion="user">; only this CSS transition needs an opt-out. */
 @media (prefers-reduced-motion: reduce) {
   .app-dialog,
   .app-dialog::backdrop {

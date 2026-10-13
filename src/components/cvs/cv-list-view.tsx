@@ -24,7 +24,6 @@ export function CvListView() {
   // Kept after closing so the dialog text doesn't vanish during its exit transition.
   const [deleteTarget, setDeleteTarget] = useState<CvSummary | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  // After a confirmed delete the card (and its button) disappears, so focus the heading instead.
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -39,7 +38,6 @@ export function CvListView() {
     const { id, title } = deleteTarget;
     setDeleteConfirmed(true);
     setConfirmOpen(false);
-    // Optimistic: the card disappears now and comes back if the request fails.
     deleteCv.mutate(id, {
       onSuccess: () => toast.success("CV deleted", { description: title }),
       onError: (error) => toast.error("Couldn't delete the CV", { description: getErrorMessage(error) }),

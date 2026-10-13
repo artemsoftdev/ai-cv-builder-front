@@ -20,7 +20,6 @@ import { signupSchema, type SignupValues } from "@/lib/validation/auth";
 const EMAIL_TAKEN = "email_taken";
 
 type SignupFormProps = {
-  /** Already sanitised redirect target (see `safeNextPath`). */
   next: string;
 };
 

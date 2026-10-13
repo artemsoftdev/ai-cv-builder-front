@@ -3,12 +3,6 @@ import type { ReactNode } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { WIDE_PAGE } from "@/components/layout/wide-page";
 
-/**
- * Shell of every signed-in page. The proxy already turned away visitors without a session
- * cookie; the header's `useMe()` (and every other query) verifies the session with the API,
- * and a 401 redirects to /login. Children render in parallel with that check rather than
- * waiting for it, so the common (valid session) case is not slowed down.
- */
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">

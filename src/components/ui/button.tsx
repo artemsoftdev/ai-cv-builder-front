@@ -30,7 +30,6 @@ const sizes: Record<ButtonSize, string> = {
   "icon-sm": "size-10",
 };
 
-/** Class names of a button, for elements that must look like one (e.g. a Next `<Link>`). */
 export function buttonVariants({
   variant = "primary",
   size = "md",
@@ -42,7 +41,6 @@ export function buttonVariants({
 export type ButtonProps = ComponentProps<"button"> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** Shows a spinner instead of `leftIcon`, disables the button and sets `aria-busy`. */
   loading?: boolean;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;

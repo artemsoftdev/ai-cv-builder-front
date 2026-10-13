@@ -13,26 +13,21 @@ import { cn } from "@/lib/utils/cn";
 type FormTextFieldProps = {
   name: Path<CvContent>;
   label: string;
-  /** Visually hidden label (the context makes it obvious, e.g. a bullet). */
   hideLabel?: boolean;
   multiline?: boolean;
   rows?: number;
-  /** Shows a character counter once the text gets close to this limit. */
   maxLength?: number;
   hint?: ReactNode;
-  /** Rendered next to the label, outside it (e.g. review badges). */
   addon?: ReactNode;
   className?: string;
   controlClassName?: string;
   placeholder?: string;
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  /** Input only. */
   type?: HTMLInputTypeAttribute;
   inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
   autoComplete?: string;
 };
 
-/** A text input or textarea registered with the editor form, with its error and hint wired up. */
 export function FormTextField({
   name,
   label,
@@ -98,7 +93,6 @@ export function FormTextField({
   );
 }
 
-/** "1,234 / 1,500", only once the text uses most of its limit. */
 function CharacterCounter({ id, name, max }: { id?: string; name: Path<CvContent>; max: number }) {
   const value = useWatch<CvContent>({ name });
   const length = typeof value === "string" ? value.length : 0;

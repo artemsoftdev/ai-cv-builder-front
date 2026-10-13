@@ -2,15 +2,10 @@ import type { CvContent, CvLink } from "@/lib/api/types";
 
 import { formatDateRange } from "./sections";
 
-/**
- * What the CV document shows: the content with empty fields, entries and sections left out.
- * Mirrors `toPrintableCv` of the API's PDF module (modules/pdf/printable-cv.ts), so the live
- * preview prints exactly what the downloaded PDF will. Keep the two in sync.
- */
+// Mirrors toPrintableCv in the API (modules/pdf/printable-cv.ts): keep the two in sync.
 export type PrintableCv = {
   name: string;
   headline: string;
-  /** Email, phone, location, then each link. */
   contact: string[];
   summary: string;
   experience: PrintableEntry[];
@@ -18,19 +13,17 @@ export type PrintableCv = {
   skills: { id: string; name: string; items: string }[];
 };
 
-/** An experience or education entry: "title — subtitle", dates on the right, then details. */
 export type PrintableEntry = {
   id: string;
   title: string;
   subtitle: string;
   dates: string;
   location: string;
-  /** Education only (may contain line breaks). */
   details: string;
   bullets: { id: string; text: string }[];
 };
 
-/** Paper is not clickable: a link prints as its address without the protocol (or its label). */
+// Paper is not clickable: print the address without the protocol (or the label).
 export function linkText(link: Pick<CvLink, "label" | "url">): string {
   const url = link.url
     .trim()
@@ -95,7 +88,6 @@ export function toPrintableCv(content: CvContent): PrintableCv {
   };
 }
 
-/** Nothing would be printed at all. */
 export function isEmptyPrintable(cv: PrintableCv): boolean {
   return (
     !cv.name &&

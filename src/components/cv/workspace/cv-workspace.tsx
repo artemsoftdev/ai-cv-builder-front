@@ -35,20 +35,15 @@ import { parseWorkspaceTab, WorkspaceTabs, type WorkspaceTab } from "./workspace
 
 type CvWorkspaceProps = {
   cv: ReadyCv;
-  /** `useCv().refetch` */
   refetch: () => Promise<{ isSuccess: boolean; data?: Cv | undefined }>;
-  /** Polling failed (network, 5xx); it keeps trying. */
   refetchFailed: boolean;
-  /** Focus the title (the CV just finished generating while the page was open). */
   autoFocus?: boolean;
 };
 
 const NO_SECTIONS: ReadonlySet<CvSectionKey> = new Set();
 const HIGHLIGHT_MS = 2_600;
-/** Height of the sticky app header (h-16). */
 const APP_HEADER_PX = 64;
 
-/** Editor for a generated CV, saved automatically. */
 export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: CvWorkspaceProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useFocusOnMount(headingRef, autoFocus);
@@ -63,13 +58,10 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const tabsId = useId();
   const tabsRef = useRef<HTMLDivElement>(null);
-  // The phone tab lives in the URL (?tab=questions), so a reload or a shared link keeps it.
   const activeTab = parseWorkspaceTab(useSearchParams().get("tab"));
 
-  // Shown until the server confirms the rename (or wins a conflict).
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
   const [updatedSections, setUpdatedSections] = useState<ReadonlySet<CvSectionKey>>(NO_SECTIONS);
-  // Dismissed review flags are hidden at once; the server drops them with the PATCH response.
   const [dismissedFlags, setDismissedFlags] = useState<ReadonlySet<string>>(() => new Set());
 
   const handleSaved = useCallback((patch: CvPatch) => {
@@ -77,7 +69,6 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   }, []);
 
   const handleConflict = useCallback(({ kept, dropped }: ConflictResolution) => {
-    // Queued renames / dismissals were dropped: show the server's state again.
     setPendingTitle(null);
     setDismissedFlags(new Set());
     if (dropped.length > 0) {
@@ -117,7 +108,7 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     autosave.saveTitle(title);
   };
 
-  /** The server copy is what Claude rewrites and what the PDF is made from: save edits first. */
+  // Claude rewrites and the PDF renders the server copy: save edits first.
   const ensureSaved = async (): Promise<SaveCheck> => {
     if (autosave.invalid) return "invalid";
     return (await autosave.flush()) ? null : "unsaved";
@@ -135,10 +126,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
   );
   const openQuestions = cv.questions.filter(needsAnswer).length;
-  // Phones always have the Questions tab (with an empty state); desktop only shows real ones.
   const showQuestions = !isDesktop || cv.questions.length > 0;
 
-  // Phones show one panel at a time (tabs); from `lg` everything is visible side by side.
   const panelProps = (tab: WorkspaceTab) =>
     isDesktop
       ? {}
@@ -148,9 +137,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     const url = new URL(window.location.href);
     if (tab === "edit") url.searchParams.delete("tab");
     else url.searchParams.set("tab", tab);
-    // The native History API updates useSearchParams without a server round trip.
+    // The History API updates useSearchParams without a server round trip.
     window.history.replaceState(null, "", url);
-    // Start the new panel at its top rather than wherever the previous one was scrolled to.
     const tabs = tabsRef.current;
     if (!tabs) return;
     const top = tabs.getBoundingClientRect().top + window.scrollY - APP_HEADER_PX;
@@ -159,7 +147,6 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
 
   return (
     <FormProvider {...form}>
-      {/* `data-layout="wide"` lets the app shell use a wider container for this page. */}
       <div data-layout="wide" className="space-y-5 lg:space-y-6">
         <header className="space-y-3">
           <BackToCvsLink />

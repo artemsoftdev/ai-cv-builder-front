@@ -19,23 +19,13 @@ export type ConfirmDialogProps = {
   description?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** "danger" styles the confirm button red and puts initial focus on Cancel (the safe choice). */
   tone?: "primary" | "danger";
-  /** While true the dialog cannot be dismissed and the confirm button shows a spinner. */
   loading?: boolean;
   onConfirm: () => void;
-  /**
-   * Where focus goes after closing. Defaults to the element that opened the dialog; pass
-   * another target when confirming removes that element (e.g. deleting a list item).
-   */
   finalFocusRef?: RefObject<HTMLElement | null>;
 };
 
-/**
- * Modal confirmation built on the native `<dialog>`: the browser provides the top layer,
- * makes the rest of the page inert and handles Escape. We add initial focus, focus
- * restoration, backdrop click to dismiss and open/close transitions (see `.app-dialog`).
- */
+// Native <dialog>: the browser provides the top layer, the inert background and Escape.
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -77,7 +67,7 @@ export function ConfirmDialog({
     requestClose();
   };
 
-  // Fired however the dialog ended up closed (including a browser-forced close).
+  // Fired however the dialog ended up closed, including a browser-forced close.
   const handleClose = () => {
     if (open) onOpenChange(false);
     const target = finalFocusRef?.current ?? returnFocusRef.current;
@@ -86,12 +76,11 @@ export function ConfirmDialog({
   };
 
   const handleBackdropClick = (event: MouseEvent<HTMLDialogElement>) => {
-    // The dialog box itself has no padding, so a click whose target is the <dialog> hit the backdrop.
+    // The dialog box has no padding, so a click whose target is the <dialog> hit the backdrop.
     if (event.target === event.currentTarget) requestClose();
   };
 
   return (
-    // Backdrop click is a pointer convenience; Escape (onCancel) is the keyboard equivalent.
     <dialog
       ref={dialogRef}
       role="alertdialog"

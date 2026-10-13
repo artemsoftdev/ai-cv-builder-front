@@ -21,7 +21,6 @@ const FIELD_LABELS: Record<string, string> = {
   skills: "Skill",
 };
 
-/** "contact.phone" -> "Phone"; unknown paths fall back to their last readable segment. */
 export function describeRemovedField(field: string): string {
   const known = FIELD_LABELS[field] ?? FIELD_LABELS[field.split(".").slice(0, 2).join(".")] ?? FIELD_LABELS[field.split(".")[0] ?? ""];
   if (known) return known;
@@ -29,10 +28,6 @@ export function describeRemovedField(field: string): string {
   return last.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (char) => char.toUpperCase());
 }
 
-/**
- * What the grounding verifier did: how many details still need a look, and which values it
- * removed because they were not in the source (collapsible list).
- */
 export function ReviewNotice({ removed }: { removed: RemovedClaim[] }) {
   const { openFlagCount } = useReview();
   const [showRemoved, setShowRemoved] = useState(false);

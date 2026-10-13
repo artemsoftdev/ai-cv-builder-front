@@ -86,7 +86,7 @@ function SkillGroupEditor({ index, itemId, count, onMove, onRemove }: SkillGroup
   const { field, fieldState } = useController<CvContent, `skills.${number}.items`>({ name: `skills.${index}.items` });
   const inputId = useId();
   const errorId = `${inputId}-error`;
-  // An error on the array itself (too many) or on one of its strings (too long).
+  // The error is on the array (too many) or on one of its items (too long).
   const itemErrors = fieldState.error as { message?: string } | Array<{ message?: string } | undefined> | undefined;
   const error = Array.isArray(itemErrors) ? itemErrors.find((entry) => entry?.message)?.message : itemErrors?.message;
 

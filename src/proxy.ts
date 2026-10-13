@@ -9,12 +9,7 @@ import {
   SESSION_COOKIE,
 } from "@/lib/auth/paths";
 
-/**
- * Optimistic route guard (Next 16 "proxy", formerly middleware). It only checks that the
- * session cookie is *present*, which costs nothing and avoids flashing protected pages to
- * signed-out visitors. Whether the session is valid is decided by the API: the client calls
- * GET /api/auth/me and any 401 sends the user to /login (clearing a stale cookie first).
- */
+// Optimistic guard: only checks that the session cookie exists; the API decides whether it is valid.
 export function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
@@ -32,7 +27,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // App routes (PROTECTED_PREFIXES) + auth pages only. `/api/*` is deliberately excluded:
-  // the API authenticates itself, and running the proxy would make Next buffer upload bodies.
+  // /api/* is excluded: the API authenticates itself, and the proxy would make Next buffer uploads.
   matcher: ["/cvs/:path*", "/login", "/signup"],
 };

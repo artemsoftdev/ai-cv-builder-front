@@ -7,13 +7,9 @@ const { targetRole: ROLE, sourceText: TEXT } = API_LIMITS;
 
 export type SourceMode = "pdf" | "text";
 
-/** Number of characters that count towards the source text limits (the API trims). */
 export const sourceTextLength = (text: string) => text.trim().length;
 
-/**
- * Both sources live in the form so switching tabs keeps what was entered; only the
- * selected one is validated and sent.
- */
+// Both sources stay in the form so switching tabs keeps them; only the selected one is validated and sent.
 export const newCvSchema = z
   .object({
     source: z.enum(["pdf", "text"]),

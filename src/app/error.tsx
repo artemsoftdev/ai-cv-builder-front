@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
-/** Last-resort boundary for unexpected render errors (API errors are handled where they occur). */
 export default function ErrorBoundary({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     console.error(error);

@@ -12,9 +12,7 @@ import type {
   UserResponse,
 } from "./types";
 
-/** One function per route of docs/API.md. Envelopes (`{ user }`, `{ cv }`, ...) are unwrapped here. */
-
-// IDs end up in URL paths; encoding them keeps a malformed id from changing the route.
+// Encoding keeps a malformed id from changing the route.
 const seg = (value: string) => encodeURIComponent(value);
 
 export const healthApi = {
@@ -34,7 +32,6 @@ export const authApi = {
     (await apiFetch<UserResponse>("/api/auth/me", { signal })).user,
 };
 
-/** Builds the multipart body of `POST /api/cvs` (exactly one of text / file). */
 export function toCreateCvFormData(input: CreateCvInput): FormData {
   const form = new FormData();
   form.set("targetRole", input.targetRole);
@@ -54,7 +51,6 @@ export const cvsApi = {
   get: async (id: string, signal?: AbortSignal): Promise<Cv> =>
     (await apiFetch<CvResponse>(`/api/cvs/${seg(id)}`, { signal })).cv,
 
-  /** 202: the CV comes back with `status: 'generating'`; poll `get` for progress. */
   create: async (input: CreateCvInput): Promise<Cv> =>
     (await apiFetch<CvResponse>("/api/cvs", { method: "POST", formData: toCreateCvFormData(input) })).cv,
 
@@ -63,7 +59,6 @@ export const cvsApi = {
 
   remove: (id: string): Promise<void> => apiFetch<void>(`/api/cvs/${seg(id)}`, { method: "DELETE" }),
 
-  /** Only valid when `status === 'failed'`. */
   retry: async (id: string): Promise<Cv> =>
     (await apiFetch<CvResponse>(`/api/cvs/${seg(id)}/retry`, { method: "POST" })).cv,
 

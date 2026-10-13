@@ -11,12 +11,10 @@ import { useReview } from "./review-context";
 
 type ItemReviewProps = {
   itemId: string;
-  /** What the item is, for labels: "this highlight", "the summary", ... */
   label: string;
   className?: string;
 };
 
-/** Shows the grounding review of one item: "Check" flags and source quotes. */
 export function ItemReview({ itemId, label, className }: ItemReviewProps) {
   const { flagsFor, evidenceFor } = useReview();
   const flags = flagsFor(itemId);
@@ -38,7 +36,7 @@ function FlagBadge({ itemId, label }: { itemId: string; label: string }) {
   const rootRef = useRef<HTMLSpanElement>(null);
 
   const handleDismiss = () => {
-    // The badge disappears with the flag; keep focus nearby, on the field it was about.
+    // The badge disappears with the flag: move focus to the field it was about.
     const scope = rootRef.current?.closest("[data-review-scope]");
     setOpen(false);
     dismiss(flags.map((flag) => flag.id));

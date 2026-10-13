@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils/cn";
 import { FieldError } from "./field-error";
 import { Label } from "./label";
 
-/** Props to spread onto the control so label, hint and error are wired for assistive tech. */
 export type FieldControlProps = {
   id: string;
   "aria-describedby": string | undefined;
@@ -19,20 +18,11 @@ type FieldProps = {
   error?: string;
   hint?: ReactNode;
   optional?: boolean;
-  /** Use a fixed id (e.g. to link to the field); generated otherwise. */
   id?: string;
   className?: string;
   children: (control: FieldControlProps) => ReactNode;
 };
 
-/**
- * Label + control + hint + error with correct `htmlFor` / `aria-describedby` wiring.
- *
- * @example
- * <Field label="Email" error={errors.email?.message}>
- *   {(control) => <Input type="email" {...control} {...register("email")} />}
- * </Field>
- */
 export function Field({ label, error, hint, optional, id, className, children }: FieldProps) {
   const generatedId = useId();
   const controlId = id ?? generatedId;

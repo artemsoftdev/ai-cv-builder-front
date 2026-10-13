@@ -15,27 +15,19 @@ import { formatElapsed } from "@/lib/utils/format";
 import { CvPageShell } from "../cv-page-shell";
 import { getGenerationSteps, type GenerationStep } from "./generation-steps";
 
-/** After this long, say that it is slower than usual (the job keeps running server-side). */
 const SLOW_AFTER_MS = 3 * 60_000;
 
 type GenerationProgressProps = {
   cv: Cv;
-  /** Polling failed (network, 5xx); polling continues and the view recovers by itself. */
   connectionLost: boolean;
-  /** When the current run started, if known locally (a retry from this tab). */
   startedAt?: number | null;
   autoFocus?: boolean;
 };
 
-/**
- * Progress of the initial generation. Everything shown comes from the polled server state,
- * so reloading the page (or opening it on another device) picks up exactly where it is.
- */
 export function GenerationProgress({ cv, connectionLost, startedAt, autoFocus = false }: GenerationProgressProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useFocusOnMount(headingRef, autoFocus);
 
-  // Remember that this CV went through 'extracting' (scanned PDF) so the step stays listed.
   const [sawExtracting, setSawExtracting] = useState(cv.stage === "extracting");
   if (cv.stage === "extracting" && !sawExtracting) setSawExtracting(true);
 
@@ -76,7 +68,6 @@ export function GenerationProgress({ cv, connectionLost, startedAt, autoFocus = 
             ))}
           </ol>
 
-          {/* Announces stage changes; the visual stepper alone is silent for screen readers. */}
           <p aria-live="polite" className="sr-only">
             {current ? `Step ${currentIndex + 1} of ${steps.length}: ${current.label}` : ""}
           </p>

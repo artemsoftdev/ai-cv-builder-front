@@ -6,6 +6,6 @@ export const metadata: Metadata = { title: "CV" };
 
 export default async function CvPage({ params }: PageProps<"/cvs/[id]">) {
   const { id } = await params;
-  // Keyed by id: moving between CVs must not carry over editor or progress state.
+  // Keyed by id so editor and progress state never carry over between CVs.
   return <CvView key={id} cvId={id} />;
 }

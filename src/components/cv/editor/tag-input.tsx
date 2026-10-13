@@ -10,9 +10,7 @@ type TagInputProps = {
   value: string[];
   onChange: (items: string[]) => void;
   onBlur?: () => void;
-  /** Most items allowed. */
   max: number;
-  /** Longest item allowed (longer ones are cut). */
   maxItemLength: number;
   invalid?: boolean;
   "aria-describedby"?: string;
@@ -22,12 +20,7 @@ type TagInputProps = {
 
 const SEPARATOR = /[,\n]/;
 
-/**
- * Chips + text box for a list of short strings (skills). Enter or a comma adds what was
- * typed, pasting "Go, SQL, Docker" adds three, Backspace in the empty box removes the last
- * chip, and each chip has a remove button. Commas are handled on `change` rather than
- * `keydown` because Android keyboards report most keys as "Unidentified".
- */
+// Commas are handled on change, not keydown: Android keyboards report most keys as "Unidentified".
 export function TagInput({
   id,
   value,
@@ -44,7 +37,6 @@ export function TagInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const full = value.length >= max;
 
-  /** Adds the comma/newline separated entries of `text`, skipping duplicates (case-insensitive). */
   const add = (text: string) => {
     const next = [...value];
     for (const raw of text.split(SEPARATOR)) {
@@ -66,7 +58,6 @@ export function TagInput({
       setDraft(text);
       return;
     }
-    // Everything before the last separator is complete; keep typing the rest.
     const lastSeparator = Math.max(text.lastIndexOf(","), text.lastIndexOf("\n"));
     add(text.slice(0, lastSeparator));
     setDraft(text.slice(lastSeparator + 1).trimStart());
@@ -75,7 +66,6 @@ export function TagInput({
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing) return;
     if (event.key === "Enter") {
-      // Never submit or insert a line: Enter commits the chip.
       event.preventDefault();
       add(draft);
       setDraft("");

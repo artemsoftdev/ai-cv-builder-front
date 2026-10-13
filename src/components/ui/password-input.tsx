@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils/cn";
 
 import { Input, type InputProps } from "./input";
 
-/** Password field with a show/hide toggle (typing passwords on a phone is error-prone). */
 export function PasswordInput({ className, ...props }: Omit<InputProps, "type">) {
   const [visible, setVisible] = useState(false);
 

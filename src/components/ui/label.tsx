@@ -3,7 +3,6 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils/cn";
 
 export type LabelProps = ComponentProps<"label"> & {
-  /** Appends a muted "(optional)" marker. */
   optional?: boolean;
 };
 

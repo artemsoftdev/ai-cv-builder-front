@@ -6,9 +6,7 @@ type EmptyStateProps = {
   icon?: ReactNode;
   title: string;
   description?: ReactNode;
-  /** Usually a primary Button or button-styled Link. */
   action?: ReactNode;
-  /** "danger" is used for error states (failed to load, ...). */
   tone?: "neutral" | "danger";
   className?: string;
 };

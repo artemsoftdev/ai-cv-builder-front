@@ -29,14 +29,10 @@ type AnswerValues = z.input<typeof answerSchema>;
 
 type QuestionCardProps = {
   question: CvQuestion;
-  /** "Experience · Acme Corp" */
   target: string;
-  /** Another answer is being applied (or the CV is busy): one at a time. */
   locked: boolean;
-  /** This card's answer request is in flight. */
   submitting: boolean;
   skipping: boolean;
-  /** Rejects with the error to show on the card. */
   onAnswer: (answer: string) => Promise<void>;
   onSkip: () => void;
 };
@@ -48,7 +44,6 @@ function answerErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : getErrorMessage(error);
 }
 
-/** One open, failed or in-progress question with its answer form. */
 export function QuestionCard({ question, target, locked, submitting, skipping, onAnswer, onSkip }: QuestionCardProps) {
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -64,13 +59,12 @@ export function QuestionCard({ question, target, locked, submitting, skipping, o
     formState: { errors },
   } = useForm<AnswerValues>({
     resolver: zodResolver(answerSchema),
-    // A failed answer is offered again for editing.
     defaultValues: { answer: question.answer ?? "" },
     mode: "onTouched",
   });
   const length = useWatch({ control, name: "answer" }).trim().length;
 
-  // The form is replaced by a progress line: keep keyboard focus on the card.
+  // The form turns into a progress line: keep keyboard focus on the card.
   useEffect(() => {
     if (applying && submittedHere) rootRef.current?.focus();
   }, [applying, submittedHere]);

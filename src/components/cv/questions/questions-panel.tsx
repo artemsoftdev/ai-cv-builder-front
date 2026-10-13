@@ -17,19 +17,13 @@ import { describeQuestionTarget, isActiveQuestion, needsAnswer } from "./questio
 
 type QuestionsPanelProps = {
   cv: ReadyCv;
-  /**
-   * Runs before an answer is sent (saves pending edits, so Claude rewrites the latest
-   * content). Resolves to a message explaining why it can't proceed, or null.
-   */
   prepareAnswer: () => Promise<string | null>;
-  /** Phones show the panel as its own tab, which needs an explicit empty state. */
   showEmptyState?: boolean;
   className?: string;
 };
 
 type Announcement = { id: number; text: string; tone: "success" | "error" };
 
-/** An answer that finished applying between two polls, for the live region and a toast. */
 function describeTransition(
   previous: CvQuestion[],
   next: CvQuestion[],
@@ -45,10 +39,6 @@ function describeTransition(
   return null;
 }
 
-/**
- * Claude's open questions about missing or vague facts. Answering one queues an AI update
- * of the related part of the CV (the CV becomes `busy`); only one answer is applied at a time.
- */
 export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, className }: QuestionsPanelProps) {
   const answer = useAnswerQuestion(cv.id);
   const dismiss = useDismissQuestion(cv.id);
@@ -56,7 +46,6 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
   const resolvedId = useId();
   const [showResolved, setShowResolved] = useState(false);
 
-  // Announce answers that finished applying (adjusting state while rendering, no effect).
   const [previousQuestions, setPreviousQuestions] = useState(cv.questions);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   if (cv.questions !== previousQuestions) {

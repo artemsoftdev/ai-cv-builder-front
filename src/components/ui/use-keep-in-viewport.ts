@@ -4,11 +4,7 @@ import { useLayoutEffect, type RefObject } from "react";
 
 const VIEWPORT_MARGIN_PX = 8;
 
-/**
- * Nudges a floating element horizontally so it never sticks out of the viewport (which on a
- * 360px phone would cause horizontal scrolling). Measures `measureRef` (the visible bubble)
- * and shifts `shiftRef` (its positioned wrapper) with the CSS `translate` property.
- */
+// Shifts a floating element horizontally so it never sticks out of the viewport.
 export function useKeepInViewport(
   shiftRef: RefObject<HTMLElement | null>,
   measureRef: RefObject<HTMLElement | null>,

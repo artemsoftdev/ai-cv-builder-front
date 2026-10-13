@@ -9,24 +9,21 @@ export type WorkspaceTab = "edit" | "preview" | "questions";
 
 const WORKSPACE_TABS: readonly string[] = ["edit", "preview", "questions"] satisfies WorkspaceTab[];
 
-/** `?tab=` of the CV page (phones): any unknown value means the editor. */
 export function parseWorkspaceTab(value: string | null): WorkspaceTab {
   return value !== null && WORKSPACE_TABS.includes(value) ? (value as WorkspaceTab) : "edit";
 }
 
-// Below 400px three labels, icons and a count don't fit side by side; the labels win.
+// Below 400px the labels win over the icons.
 const ICON = "size-4 shrink-0 max-[25rem]:hidden";
 
 type WorkspaceTabsProps = {
   idPrefix: string;
   value: WorkspaceTab;
   onChange: (tab: WorkspaceTab) => void;
-  /** Questions waiting for an answer. */
   openQuestions: number;
   ref?: Ref<HTMLDivElement>;
 };
 
-/** Phone layout: one panel at a time. Sticks below the app header while scrolling. */
 export function WorkspaceTabs({ idPrefix, value, onChange, openQuestions, ref }: WorkspaceTabsProps) {
   const options: SegmentedTabOption<WorkspaceTab>[] = [
     { value: "edit", label: "Edit", icon: <PenLine aria-hidden="true" className={ICON} /> },

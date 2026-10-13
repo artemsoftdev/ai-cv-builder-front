@@ -3,7 +3,6 @@
 import { createContext, use, type ReactNode } from "react";
 
 type EditorContextValue = {
-  /** A background job is rewriting the CV: inputs are disabled until it finishes. */
   readOnly: boolean;
 };
 

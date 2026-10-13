@@ -4,7 +4,6 @@ import { useLayoutEffect, useState, type RefObject } from "react";
 
 export type ElementSize = { width: number; height: number };
 
-/** Border-box size of an element, updated through a ResizeObserver. */
 export function useElementSize(ref: RefObject<HTMLElement | null>): ElementSize {
   const [size, setSize] = useState<ElementSize>({ width: 0, height: 0 });
 

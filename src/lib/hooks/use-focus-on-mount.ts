@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
-/**
- * Focuses an element (usually a heading with `tabIndex={-1}`) when it mounts, so that
- * keyboard and screen reader users land on content that replaced what they were looking at.
- */
+// Only `enabled` at mount counts: later re-renders must not steal focus.
 export function useFocusOnMount(ref: RefObject<HTMLElement | null>, enabled: boolean): void {
+  const enabledOnMount = useRef(enabled);
   useEffect(() => {
-    if (enabled) ref.current?.focus({ preventScroll: false });
-    // Only on mount: later re-renders must not steal focus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (enabledOnMount.current) ref.current?.focus();
+  }, [ref]);
 }

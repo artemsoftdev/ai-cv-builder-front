@@ -16,15 +16,11 @@ type AlertProps = {
   tone?: AlertTone;
   title?: string;
   children?: ReactNode;
-  /** Extra content on the right / below (e.g. a retry button). */
   action?: ReactNode;
   className?: string;
 };
 
-/**
- * Inline message box. `danger` and `warning` use role="alert" so a message appearing after
- * an action (e.g. a failed submit) is announced; the others are polite status messages.
- */
+// danger and warning use role="alert", so a message appearing after an action is announced.
 export function Alert({ tone = "info", title, children, action, className }: AlertProps) {
   const { box, Icon } = tones[tone];
   return (

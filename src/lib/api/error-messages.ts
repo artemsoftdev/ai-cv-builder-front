@@ -5,10 +5,7 @@ import type { JobErrorCode } from "./types";
 
 const GENERIC_MESSAGE = "Something went wrong. Please try again.";
 
-/**
- * User-facing text for a failed request. The API's own messages are written for humans, so
- * they are the default; codes whose wording depends on context are overridden here.
- */
+// The API's messages are written for users; only context-dependent codes are reworded here.
 export function getErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return GENERIC_MESSAGE;
   switch (error.code) {
@@ -38,21 +35,15 @@ const JOB_ERROR_MESSAGES: Record<JobErrorCode, string> = {
   INTERNAL: "Something went wrong while generating your CV. Please try again.",
 };
 
-/** Explains a failed background job (`Cv.error.code`, `CvQuestion.error`). */
 export function describeJobError(code: string | null | undefined): string {
   if (code && Object.hasOwn(JOB_ERROR_MESSAGES, code)) return JOB_ERROR_MESSAGES[code as JobErrorCode];
   return JOB_ERROR_MESSAGES.INTERNAL;
 }
 
-/** Retrying the same source cannot help: the user has to start again with another one. */
 export function isRetryableJobError(code: string | null | undefined): boolean {
   return code !== "SOURCE_UNREADABLE";
 }
 
-/**
- * `RATE_LIMITED` when starting a generation. Creating a CV and retrying a failed one share one
- * budget (docs/API.md): 10 starts per hour, at most 3 CVs generating at the same time.
- */
 export function describeGenerationLimit(error: unknown): string {
   const retryAfter = error instanceof ApiError ? error.retryAfterSeconds : undefined;
   const wait = retryAfter ? ` You can try again in ${formatDuration(retryAfter)}.` : " Please try again later.";

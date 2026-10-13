@@ -2,10 +2,6 @@
 
 import { toast } from "sonner";
 
-/**
- * Removes a list entry and offers "Undo" in a toast. Autosave persists the removal within a
- * second, so this is the safety net for a mis-tap on a whole job or education entry.
- */
 export function removeWithUndo<T>({
   index,
   value,
@@ -19,7 +15,7 @@ export function removeWithUndo<T>({
   insert: (index: number, value: T) => void;
   message: string;
 }): void {
-  // Detached copy: the form's value object is recycled after removal.
+  // Detached copy: RHF recycles the removed value object.
   const removed = structuredClone(value);
   remove(index);
   toast(message, { action: { label: "Undo", onClick: () => insert(index, removed) } });

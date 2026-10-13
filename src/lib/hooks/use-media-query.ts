@@ -2,10 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-/**
- * Whether a CSS media query matches, kept in sync with the viewport. On the server (and during
- * hydration) it reports `false`, so use it for layout decisions of client-rendered UI.
- */
+// false on the server and during hydration: only for client-rendered layout decisions.
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(
     (onChange: () => void) => {
@@ -22,5 +19,4 @@ export function useMediaQuery(query: string): boolean {
   );
 }
 
-/** Tailwind's `lg` breakpoint (64rem): two-column workspace from here on. */
 export const DESKTOP_QUERY = "(min-width: 64rem)";

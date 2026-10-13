@@ -11,7 +11,6 @@ import { createQueryClient } from "@/lib/query/query-client";
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => {
     const client = createQueryClient({
-      // Drop everything cached for the old session, then go to /login?next=<here>.
       onUnauthorized: () => void handleSessionExpired(() => client.clear()),
     });
     return client;

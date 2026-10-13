@@ -90,7 +90,6 @@ function ExperienceItemEditor({ index, itemId, count, onMove, onRemove }: Experi
         <ItemReview itemId={itemId} label={`“${heading}”`} />
         <ItemActions itemId={itemId} index={index} count={count} label={`position ${heading}`} onMove={onMove} onRemove={onRemove} />
       </div>
-      {/* Two columns even on phones, so the short date fields share a row. */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
         <FormTextField name={`experience.${index}.title`} label="Job title" className="col-span-2 sm:col-span-1" />
         <FormTextField name={`experience.${index}.company`} label="Company" className="col-span-2 sm:col-span-1" />
