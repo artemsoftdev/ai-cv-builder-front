@@ -57,20 +57,42 @@ const skillGroupSchema = z.object({
   items: z.array(text()).max(L.skillsPerGroup, `Keep at most ${L.skillsPerGroup} skills per group`),
 });
 
-export const cvContentSchema = z.object({
-  contact: z.object({
-    fullName: text(),
-    headline: text(),
-    email: text(),
-    phone: text(),
-    location: text(),
-    links: z.array(linkSchema).max(L.links, `Add at most ${L.links} links`),
-  }),
-  summary: text(L.summary),
-  experience: z.array(experienceItemSchema).max(L.experienceItems),
-  education: z.array(educationItemSchema).max(L.educationItems),
-  skills: z.array(skillGroupSchema).max(L.skillGroups),
-}) satisfies z.ZodType<CvContent, CvContent>;
+function* itemIds(content: CvContent): Generator<{ id: string; path: (string | number)[] }> {
+  for (const [i, link] of content.contact.links.entries()) yield { id: link.id, path: ["contact", "links", i, "id"] };
+  for (const [i, item] of content.experience.entries()) {
+    yield { id: item.id, path: ["experience", i, "id"] };
+    for (const [j, bullet] of item.bullets.entries()) yield { id: bullet.id, path: ["experience", i, "bullets", j, "id"] };
+  }
+  for (const [i, item] of content.education.entries()) yield { id: item.id, path: ["education", i, "id"] };
+  for (const [i, group] of content.skills.entries()) yield { id: group.id, path: ["skills", i, "id"] };
+}
+
+// Same rule as the API: flags, evidence and questions point at items by id, so ids are unique
+// and never collide with the reserved review targets.
+const RESERVED_IDS = ["summary", "headline"];
+
+export const cvContentSchema = z
+  .object({
+    contact: z.object({
+      fullName: text(),
+      headline: text(),
+      email: text(),
+      phone: text(),
+      location: text(),
+      links: z.array(linkSchema).max(L.links, `Add at most ${L.links} links`),
+    }),
+    summary: text(L.summary),
+    experience: z.array(experienceItemSchema).max(L.experienceItems),
+    education: z.array(educationItemSchema).max(L.educationItems),
+    skills: z.array(skillGroupSchema).max(L.skillGroups),
+  })
+  .superRefine((content, ctx) => {
+    const seen = new Set(RESERVED_IDS);
+    for (const { id, path } of itemIds(content)) {
+      if (seen.has(id)) ctx.addIssue({ code: "custom", path, message: "This entry appears twice. Remove one copy." });
+      seen.add(id);
+    }
+  }) satisfies z.ZodType<CvContent, CvContent>;
 
 export const CV_TITLE_MAX = 120;
 export const cvTitleSchema = z

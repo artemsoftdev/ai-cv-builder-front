@@ -43,7 +43,7 @@ export function EducationSection({ updated }: { updated: boolean }) {
                 onRemove={() =>
                   removeWithUndo({
                     index,
-                    value: getValues(`education.${index}`),
+                    items: () => getValues("education"),
                     remove,
                     insert: (at, item) => insert(at, item),
                     message: "Education entry removed",

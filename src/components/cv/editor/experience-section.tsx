@@ -44,7 +44,7 @@ export function ExperienceSection({ updated }: { updated: boolean }) {
                 onRemove={() =>
                   removeWithUndo({
                     index,
-                    value: getValues(`experience.${index}`),
+                    items: () => getValues("experience"),
                     remove,
                     insert: (at, item) => insert(at, item),
                     message: "Position removed",

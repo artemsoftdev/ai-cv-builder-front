@@ -48,6 +48,21 @@ describe("cvContentSchema", () => {
   });
 });
 
+describe("cvContentSchema ids", () => {
+  it("rejects an id used twice anywhere in the document, like the API", () => {
+    const value = content();
+    value.education = [{ id: "e1", institution: "MIT", degree: "", location: "", startDate: "", endDate: "", details: "" }];
+    value.experience[0]!.bullets.push({ id: "b1", text: "Copy" });
+    expect(issuePaths(value)).toEqual(["experience.0.bullets.1.id", "education.0.id"]);
+  });
+
+  it("reserves the ids of the summary and headline review targets", () => {
+    const value = content();
+    value.skills[0]!.id = "summary";
+    expect(issuePaths(value)).toEqual(["skills.0.id"]);
+  });
+});
+
 describe("isAllowedLinkUrl", () => {
   it.each(["github.com/jane", "https://jane.dev", "http://x.y", "mailto:jane@example.com", "", " HTTPS://X.Y "])(
     "allows %j",

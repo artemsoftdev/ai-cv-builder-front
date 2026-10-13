@@ -46,7 +46,7 @@ export function SkillsSection({ updated }: { updated: boolean }) {
                 onRemove={() =>
                   removeWithUndo({
                     index,
-                    value: getValues(`skills.${index}`),
+                    items: () => getValues("skills"),
                     remove,
                     insert: (at, group) => insert(at, group),
                     message: "Skill group removed",

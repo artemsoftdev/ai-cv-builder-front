@@ -2,9 +2,10 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import type { Path, UseFormReturn } from "react-hook-form";
 
 import { cvsApi } from "@/lib/api/endpoints";
+import { getValidationIssues, isApiError } from "@/lib/api/errors";
 import type { Cv, CvContent } from "@/lib/api/types";
 import { isLeaving } from "@/lib/auth/session";
 import { useUpdateCv } from "@/lib/query/cv-hooks";
@@ -81,7 +82,7 @@ export function useCvAutosave({
     onRemoteUpdateRef.current = onRemoteUpdate;
   });
 
-  const { subscribe, getValues, trigger, reset } = form;
+  const { subscribe, getValues, trigger, reset, setError } = form;
 
   const saveDraft = useCallback(
     (content: CvContent) => {
@@ -113,7 +114,7 @@ export function useCvAutosave({
 
       if (sections.length > 0) onRemoteUpdateRef.current?.(sections);
     },
-    [queue, getValues, reset, trigger, saveDraft],
+    [queue, reset, trigger, saveDraft],
   );
 
   const onConflictRef = useRef(onConflict);
@@ -154,6 +155,12 @@ export function useCvAutosave({
       onStateChange: (next) => {
         setState(next);
         if (next.status === "saved" && !invalidRef.current) removeDraft(cvId);
+        // Point the API's objections at the fields they are about.
+        if (next.status === "error" && isApiError(next.error, "VALIDATION_ERROR")) {
+          for (const { path, message } of getValidationIssues(next.error)) {
+            if (path.startsWith("content.")) setError(path.slice("content.".length) as Path<CvContent>, { type: "server", message });
+          }
+        }
       },
       onSaved,
       onConflict: () => void reloadAfterConflict(),
@@ -166,7 +173,7 @@ export function useCvAutosave({
         });
       },
     });
-  }, [cvId, queue, queryClient, updateCv, refetch, onSaved, reloadAfterConflict]);
+  }, [cvId, queue, queryClient, updateCv, refetch, onSaved, reloadAfterConflict, setError]);
 
   useEffect(() => {
     const initialJson = JSON.stringify(getValues());

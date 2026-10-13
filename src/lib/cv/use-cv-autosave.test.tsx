@@ -2,7 +2,7 @@ import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useFormState } from "react-hook-form";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Cv, CvContent } from "@/lib/api/types";
@@ -66,8 +66,10 @@ function Editor({ callbacks, debounceMs, initial }: EditorProps) {
   const cv = query.data as Cv & { content: CvContent };
   const form = useForm<CvContent>({ defaultValues: structuredClone(initial ?? cv.content) });
   const autosave = useCvAutosave({ cv, refetch: query.refetch, form, debounceMs, ...callbacks });
+  const { errors } = useFormState({ control: form.control });
   return (
     <>
+      <output aria-label="Summary error">{errors.summary?.message}</output>
       <textarea aria-label="Summary" {...form.register("summary")} />
       <input aria-label="Link" {...form.register("contact.links.0.url")} />
       <output aria-label="Save status">{autosave.state.status}</output>
@@ -144,6 +146,21 @@ describe("useCvAutosave", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     // Asserted on the payload: a save flushed by an earlier test's unmount may still land here.
     expect(patchCalls(fetchMock).filter(([, init]) => String(init?.body).includes("javascript:"))).toHaveLength(0);
+  });
+
+  it("shows the API's objection on the field it is about", async () => {
+    mockFetch().mockImplementation(async (_input, init) =>
+      init?.method === "PATCH"
+        ? errorResponse(400, "VALIDATION_ERROR", "Invalid request", {
+            issues: [{ path: "content.summary", message: "Summary is not allowed here" }],
+          })
+        : jsonResponse({ cv: makeCv() }),
+    );
+    const { setSummary } = renderEditor();
+
+    setSummary("Rejected by the server");
+
+    await waitFor(() => expect(screen.getByLabelText("Summary error")).toHaveTextContent("Summary is not allowed here"));
   });
 
   it("loads newer server content (an applied answer) into a clean form", async () => {
