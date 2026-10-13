@@ -29,6 +29,7 @@ describe("proxy", () => {
     expect(run("/login", { session: true }).location).toBe("http://localhost:3000/cvs");
     expect(run("/signup?next=/cvs/1", { session: true }).location).toBe("http://localhost:3000/cvs/1");
     expect(run("/login?next=//evil.example", { session: true }).location).toBe("http://localhost:3000/cvs");
+    expect(run("/login?next=%2F.%2F%2Fevil.example", { session: true }).location).toBe("http://localhost:3000/cvs");
   });
 
   it("shows the auth pages to signed-out visitors", () => {

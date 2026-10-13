@@ -22,8 +22,21 @@ describe("safeNextPath", () => {
     ["/\tevil"],
     ["/login"],
     ["/signup?next=/cvs"],
+    ["/.//evil.example"],
+    ["/..//evil.example"],
+    ["/%2e//evil.example"],
+    ["/%2e%2e//evil.example"],
+    ["/cvs/..//evil.example"],
+    ["/a/..//evil.example"],
+    ["/./\\evil.example"],
   ])("falls back to /cvs for %s", (raw) => {
     expect(safeNextPath(raw)).toBe("/cvs");
+  });
+
+  it("never returns a protocol-relative target", () => {
+    for (const raw of ["/.//x", "/././/x", "/%2E//x", "/cvs/../..//x", "/./%2e//x"]) {
+      expect(safeNextPath(raw).startsWith("//")).toBe(false);
+    }
   });
 });
 

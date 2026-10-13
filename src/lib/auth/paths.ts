@@ -42,7 +42,10 @@ export function safeNextPath(raw: string | null | undefined, fallback = HOME_PAT
   if (url.origin !== "http://localhost") return fallback;
   // Sending a signed-in user back to the login form would be a loop.
   if (isAuthPage(url.pathname)) return fallback;
-  return `${url.pathname}${url.search}${url.hash}`;
+  const target = `${url.pathname}${url.search}${url.hash}`;
+  // Dot segments collapse during parsing: "/.//evil.example" becomes "//evil.example".
+  if (target.startsWith("//") || target.startsWith("/\\")) return fallback;
+  return target;
 }
 
 /** `/login?next=<path>` (or `/signup?...`), dropping `next` when it is not a safe target. */
