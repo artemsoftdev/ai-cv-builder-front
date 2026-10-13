@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { authApi } from "@/lib/api/endpoints";
+import { isUnauthorizedError } from "@/lib/api/errors";
 import type { Credentials, User } from "@/lib/api/types";
 import { LOGIN_PATH } from "@/lib/auth/paths";
-import { leaveTo } from "@/lib/auth/session";
+import { clearSessionCookie, leaveTo } from "@/lib/auth/session";
 import { claimDrafts, clearDrafts } from "@/lib/cv/drafts";
 import { flushPendingSaves } from "@/lib/cv/pending-saves";
 
@@ -44,7 +45,13 @@ export function useSignup() {
 
 async function logout(): Promise<void> {
   await flushPendingSaves();
-  await authApi.logout();
+  try {
+    await authApi.logout();
+  } catch (error) {
+    // Already signed out (expired or revoked): only the stale cookie is left to clear.
+    if (!isUnauthorizedError(error)) throw error;
+    await clearSessionCookie();
+  }
 }
 
 export function useLogout() {

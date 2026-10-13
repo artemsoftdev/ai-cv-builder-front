@@ -7,7 +7,7 @@ import { browserNavigation } from "@/lib/auth/session";
 import { readDraft, writeDraft } from "@/lib/cv/drafts";
 import { registerFlush } from "@/lib/cv/pending-saves";
 import { CV_ID, makeContent } from "@/test/fixtures";
-import { fetchCall, jsonResponse, mockFetch } from "@/test/http";
+import { errorResponse, fetchCall, jsonResponse, mockFetch } from "@/test/http";
 
 import { useLogin, useLogout } from "./auth-hooks";
 import { queryKeys } from "./keys";
@@ -50,6 +50,25 @@ describe("useLogout", () => {
     expect(fetchCall(fetchMock).url).toBe("/api/auth/logout");
     expect(readDraft(CV_ID)).toBeNull();
     expect(queryClient.getQueryData(queryKeys.me)).toBeUndefined();
+  });
+
+  it("treats an already expired session as logged out instead of showing an error", async () => {
+    const replace = vi.spyOn(browserNavigation, "replace").mockImplementation(() => undefined);
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(async (input) =>
+      String(input) === "/api/auth/logout"
+        ? errorResponse(401, "UNAUTHORIZED", "Authentication required")
+        : new Response(null, { status: 204 }),
+    );
+    const { result } = renderHook(() => useLogout(), { wrapper });
+
+    act(() => result.current.mutate());
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+    expect(result.current.isError).toBe(false);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    // The API could not clear the cookie for a session it no longer knows.
+    expect(fetchCall(fetchMock, 1)).toMatchObject({ url: "/auth/session", init: { method: "DELETE" } });
   });
 
   it("reports other failures", async () => {
