@@ -43,6 +43,20 @@
 
   --shadow-card: 0 1px 2px oklch(0.22 0.02 286 / 0.04), 0 1px 3px oklch(0.22 0.02 286 / 0.06);
   --shadow-elevated: 0 12px 32px -12px oklch(0.22 0.02 286 / 0.22), 0 2px 6px oklch(0.22 0.02 286 / 0.06);
+
+  /* A CV section the AI just rewrote: a soft accent glow that fades out. */
+  --animate-section-updated: section-updated 2.4s ease-out;
+
+  @keyframes section-updated {
+    0%,
+    35% {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-ring), var(--shadow-card);
+    }
+    100% {
+      box-shadow: var(--shadow-card);
+    }
+  }
 }
 
 @layer base {
