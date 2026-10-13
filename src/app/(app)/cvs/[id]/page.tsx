@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { CvView } from "@/components/cv/cv-view";
 
 export const metadata: Metadata = { title: "CV" };
 
-// Placeholder: the generation progress view and CV editor replace this page.
-export default function CvPage() {
-  return (
-    <PlaceholderPage
-      title="Your CV"
-      description="Generation progress, questions, editing and PDF export will live here."
-    />
-  );
+export default async function CvPage({ params }: PageProps<"/cvs/[id]">) {
+  const { id } = await params;
+  // Keyed by id: moving between CVs must not carry over editor or progress state.
+  return <CvView key={id} cvId={id} />;
 }
