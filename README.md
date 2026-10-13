@@ -9,6 +9,10 @@ react-hook-form + zod, motion. The API lives in
 [ai-cv-builder-api](https://github.com/artemsoftdev/ai-cv-builder-api); the REST contract is
 [docs/API.md](docs/API.md) (a copy of the API repo's).
 
+The project-level write-up (how to run everything, architecture, how the AI is kept from
+inventing facts, trade-offs, AI tooling) is in the
+[API README](https://github.com/artemsoftdev/ai-cv-builder-api#readme).
+
 ## Run
 
 **Everything with Docker** (the usual way): the API repo's `docker-compose.yml` builds this repo
