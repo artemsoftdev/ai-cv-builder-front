@@ -132,6 +132,35 @@ describe("QuestionsPanel answering", () => {
   });
 });
 
+describe("QuestionsPanel resolved questions", () => {
+  it("lists applied and skipped questions under a collapsed Resolved section", async () => {
+    mockFetch();
+    const cv = makeCv([
+      makeQuestion({ id: "q1", status: "applied", answer: "Five engineers" }),
+      makeQuestion({ id: "q2", status: "dismissed", question: "Which database did you use?" }),
+    ]);
+    render(wrap(<QuestionsPanel cv={cv} prepareAnswer={vi.fn()} />));
+
+    expect(screen.getByRole("heading", { name: "Questions" })).toBeInTheDocument();
+    expect(screen.getByText("All questions are answered or skipped.")).toBeInTheDocument();
+    expect(screen.getByText("Which database did you use?")).not.toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Resolved (2)" }));
+
+    expect(screen.getByText("Applied")).toBeVisible();
+    expect(screen.getByText("Skipped")).toBeVisible();
+    expect(screen.getByText("Five engineers")).toBeVisible();
+  });
+
+  it("is hidden on desktop when Claude asked nothing, and explains it on the phone tab", () => {
+    mockFetch();
+    const { container, rerender } = render(wrap(<QuestionsPanel cv={makeCv([])} prepareAnswer={vi.fn()} />));
+    expect(container).toBeEmptyDOMElement();
+
+    rerender(wrap(<QuestionsPanel cv={makeCv([])} prepareAnswer={vi.fn()} showEmptyState />));
+    expect(screen.getByText("Claude had everything it needed from your source.")).toBeInTheDocument();
+  });
+});
+
 describe("QuestionsPanel skipping", () => {
   it("hides the question at once but only dismisses it once the Undo toast is gone", async () => {
     const fetchMock = mockFetch();

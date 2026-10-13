@@ -19,7 +19,7 @@ type Deferred = { resolve: (version: number) => void; reject: (error: unknown) =
 
 /** A queue whose `send` calls stay pending until the test settles them. */
 function setup(version = 1) {
-  const requests: Array<VersionedCvPatch & Deferred> = [];
+  const requests: Array<VersionedCvPatch & Deferred & { keepalive: boolean }> = [];
   const states: SaveState["status"][] = [];
   const onConflict = vi.fn();
   const onSaved = vi.fn();
@@ -27,9 +27,9 @@ function setup(version = 1) {
     version,
     { debounceMs: 1_000, retryDelaysMs: [2_000] },
     {
-      send: (patch) =>
+      send: (patch, { keepalive }) =>
         new Promise((resolve, reject) => {
-          requests.push({ ...patch, resolve: (v) => resolve({ version: v }), reject });
+          requests.push({ ...patch, keepalive, resolve: (v) => resolve({ version: v }), reject });
         }),
       onStateChange: (state) => states.push(state.status),
       onConflict,
@@ -235,6 +235,16 @@ describe("SaveQueue.flush", () => {
 
     await expect(flushed).resolves.toBe(false);
     expect(queue.hasUnsavedChanges).toBe(true);
+  });
+
+  it("asks for a keepalive request when the page may be going away", async () => {
+    const { queue, request } = setup();
+    queue.schedule({ content: content("typed just before leaving") });
+
+    void queue.flush({ keepalive: true });
+    await settle();
+
+    expect(request(0)).toMatchObject({ keepalive: true, content: content("typed just before leaving") });
   });
 
   it("resolves true immediately when nothing is pending", async () => {
