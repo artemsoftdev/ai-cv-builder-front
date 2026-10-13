@@ -38,6 +38,7 @@ export const makeQuestion = (overrides: Partial<CvQuestion> = {}): CvQuestion =>
   answer: null,
   status: "open",
   error: null,
+  errorMessage: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,

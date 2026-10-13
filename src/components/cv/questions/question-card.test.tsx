@@ -146,6 +146,22 @@ describe("QuestionCard (other states)", () => {
     await waitFor(() => expect(onAnswer).toHaveBeenCalledWith("Five"));
   });
 
+  it("shows the server's explanation of a failed answer when there is one", () => {
+    renderCard({
+      question: {
+        ...question,
+        status: "failed",
+        answer: "Five",
+        error: "INVALID_STATE",
+        errorMessage: "The CV entry this question was about no longer exists.",
+      },
+    });
+
+    expect(
+      screen.getByText(/couldn't be applied\. The CV entry this question was about no longer exists\./),
+    ).toBeInTheDocument();
+  });
+
   it("only offers to skip a question about an entry that was removed", async () => {
     const { user, onSkip } = renderCard({ entryRemoved: true });
 

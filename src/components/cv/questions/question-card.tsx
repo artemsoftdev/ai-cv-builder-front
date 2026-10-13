@@ -166,7 +166,8 @@ export function QuestionCard(props: QuestionCardProps) {
             <p className="flex gap-2 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger-soft-fg">
               <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               <span>
-                Your answer couldn&apos;t be applied. {describeJobError(question.error)} You can edit it and try again.
+                Your answer couldn&apos;t be applied. {question.errorMessage ?? describeJobError(question.error)} You
+                can edit it and try again.
               </span>
             </p>
           )}

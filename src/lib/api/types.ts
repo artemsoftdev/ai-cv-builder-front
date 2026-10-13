@@ -107,6 +107,7 @@ export type CvQuestion = {
   answer: string | null;
   status: QuestionStatus;
   error: string | null;
+  errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
 };
