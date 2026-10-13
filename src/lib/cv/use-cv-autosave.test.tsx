@@ -1,9 +1,9 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { useForm, useFormState } from "react-hook-form";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Cv, CvContent } from "@/lib/api/types";
 import { isLeaving } from "@/lib/auth/session";
@@ -113,6 +113,12 @@ beforeEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
   setVisibility("visible");
+});
+
+// Unmounting flushes pending edits and retries a failed flush later, with whatever fetch is mocked then.
+afterEach(() => {
+  mockFetch().mockImplementation(savedCv);
+  cleanup();
 });
 
 describe("useCvAutosave", () => {
