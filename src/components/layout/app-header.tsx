@@ -24,7 +24,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-canvas/80 backdrop-blur-md supports-[backdrop-filter]:bg-canvas/70">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
-        <Link href={HOME_PATH} className="-ml-1 rounded-lg p-1" aria-label="CV Builder, go to your CVs">
+        <Link href={HOME_PATH} className="-ml-1 shrink-0 rounded-lg p-1" aria-label="CV Builder, go to your CVs">
           <Logo />
         </Link>
 

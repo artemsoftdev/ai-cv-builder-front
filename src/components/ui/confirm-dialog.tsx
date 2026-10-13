@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useId, useRef, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+  type SyntheticEvent,
+} from "react";
 
 import { Button } from "./button";
 
@@ -16,6 +24,11 @@ export type ConfirmDialogProps = {
   /** While true the dialog cannot be dismissed and the confirm button shows a spinner. */
   loading?: boolean;
   onConfirm: () => void;
+  /**
+   * Where focus goes after closing. Defaults to the element that opened the dialog; pass
+   * another target when confirming removes that element (e.g. deleting a list item).
+   */
+  finalFocusRef?: RefObject<HTMLElement | null>;
 };
 
 /**
@@ -33,6 +46,7 @@ export function ConfirmDialog({
   tone = "primary",
   loading = false,
   onConfirm,
+  finalFocusRef,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -66,7 +80,7 @@ export function ConfirmDialog({
   // Fired however the dialog ended up closed (including a browser-forced close).
   const handleClose = () => {
     if (open) onOpenChange(false);
-    const target = returnFocusRef.current;
+    const target = finalFocusRef?.current ?? returnFocusRef.current;
     returnFocusRef.current = null;
     if (target?.isConnected) target.focus();
   };

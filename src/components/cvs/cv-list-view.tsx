@@ -3,7 +3,7 @@
 import { CloudOff, FileText, Plus, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Alert } from "@/components/ui/alert";
@@ -25,15 +25,20 @@ export function CvListView() {
   // Kept after closing so the dialog text doesn't vanish during its exit transition.
   const [deleteTarget, setDeleteTarget] = useState<CvSummary | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // After a confirmed delete the card (and its button) disappears, so focus the heading instead.
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   const requestDelete = (cv: CvSummary) => {
     setDeleteTarget(cv);
+    setDeleteConfirmed(false);
     setConfirmOpen(true);
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
     const { id, title } = deleteTarget;
+    setDeleteConfirmed(true);
     setConfirmOpen(false);
     // Optimistic: the card disappears now and comes back if the request fails.
     deleteCv.mutate(id, {
@@ -49,7 +54,9 @@ export function CvListView() {
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your CVs</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none sm:text-3xl">
+            Your CVs
+          </h1>
           <p className="mt-1 text-sm text-fg-muted sm:text-base">Drafts focused on the roles you are going for.</p>
         </div>
         {showNewButton && (
@@ -133,6 +140,7 @@ export function CvListView() {
         }
         confirmLabel="Delete"
         onConfirm={confirmDelete}
+        finalFocusRef={deleteConfirmed ? headingRef : undefined}
       />
     </div>
   );

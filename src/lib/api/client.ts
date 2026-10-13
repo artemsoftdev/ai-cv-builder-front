@@ -16,6 +16,8 @@ export type ApiRequestOptions = {
   json?: unknown;
   /** Sent as `multipart/form-data`; the browser sets the boundary. */
   formData?: FormData;
+  /** `Accept` header; JSON unless the caller expects something else (e.g. a PDF). */
+  accept?: string;
   signal?: AbortSignal;
 };
 
@@ -59,7 +61,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 /** Performs the request and returns the (2xx) response; throws `ApiError` otherwise. */
 export async function apiRequest(path: string, options: ApiRequestOptions = {}): Promise<Response> {
   const method = options.method ?? "GET";
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = new Headers({ Accept: options.accept ?? "application/json" });
   let body: BodyInit | undefined;
 
   if (options.json !== undefined) {
@@ -109,7 +111,8 @@ export type DownloadedFile = { blob: Blob; filename: string | null };
 
 /** Binary download (e.g. the PDF export), with the filename from `Content-Disposition`. */
 export async function apiFetchBlob(path: string, options: ApiRequestOptions = {}): Promise<DownloadedFile> {
-  const response = await apiRequest(path, options);
+  // The payload is binary but errors still come back as JSON, so accept anything.
+  const response = await apiRequest(path, { accept: "*/*", ...options });
   const blob = await response.blob();
   return { blob, filename: parseContentDispositionFilename(response.headers.get("Content-Disposition")) };
 }
