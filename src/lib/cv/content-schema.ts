@@ -68,8 +68,7 @@ function* itemIds(content: CvContent): Generator<{ id: string; path: (string | n
   for (const [i, group] of content.skills.entries()) yield { id: group.id, path: ["skills", i, "id"] };
 }
 
-// Same rule as the API: flags, evidence and questions point at items by id, so ids are unique
-// and never collide with the reserved review targets.
+// As in the API: flags, evidence and questions point at items by id, so ids are unique and not reserved.
 const RESERVED_IDS = ["summary", "headline"];
 
 export const cvContentSchema = z
