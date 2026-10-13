@@ -17,8 +17,10 @@ export type SaveState =
   /** Any other failure; changes are kept. `willRetry` when an automatic retry is scheduled. */
   | { status: "error"; error: unknown; willRetry: boolean };
 
+export type SendOptions = { keepalive: boolean };
+
 export type SaveQueueHandlers = {
-  send: (patch: VersionedCvPatch) => Promise<{ version: number }>;
+  send: (patch: VersionedCvPatch, options: SendOptions) => Promise<{ version: number }>;
   onStateChange?: (state: SaveState) => void;
   onSaved?: (patch: CvPatch) => void;
   onConflict?: () => void;
@@ -100,13 +102,14 @@ export class SaveQueue {
     if (!this.#inFlight) this.#setState({ status: "pending" });
   }
 
-  async flush(): Promise<boolean> {
+  // keepalive: the page may be about to go away (hidden, unloaded), so the request must outlive it.
+  async flush({ keepalive = false }: { keepalive?: boolean } = {}): Promise<boolean> {
     for (let round = 0; round < MAX_FLUSH_ROUNDS; round += 1) {
       while (this.#inFlight) await this.#inFlight;
       if (this.#blocked || !this.#pending) break;
       // An explicit flush retries once even after an error, but does not loop on it.
       if (round > 0 && this.#state.status === "error") break;
-      this.#run();
+      this.#run({ keepalive });
     }
     return this.#pending === null && this.#blocked === null && this.#inFlight === null;
   }
@@ -132,12 +135,7 @@ export class SaveQueue {
     if (!this.#inFlight) this.#setState({ status: "saved" });
   }
 
-  dispose(): void {
-    this.#clearDebounceTimer();
-    this.#clearRetryTimer();
-  }
-
-  #run(): void {
+  #run(options: SendOptions = { keepalive: false }): void {
     this.#clearDebounceTimer();
     const handlers = this.#handlers;
     // Without handlers the change simply stays queued.
@@ -150,7 +148,7 @@ export class SaveQueue {
     this.#setState({ status: "saving" });
     // From a microtask, so #inFlight is assigned before any handler runs.
     this.#inFlight = Promise.resolve()
-      .then(() => handlers.send(request))
+      .then(() => handlers.send(request, options))
       .then(
         ({ version }) => this.#handleSuccess(patch, version),
         (error: unknown) => this.#handleFailure(patch, error),

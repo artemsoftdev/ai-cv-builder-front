@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { panelId, tabId } from "@/components/ui/segmented-tabs";
 import type { Cv, CvContent } from "@/lib/api/types";
 import { cvContentSchema } from "@/lib/cv/content-schema";
-import { MERGE_UNIT_LABELS } from "@/lib/cv/merge-content";
+import { restoreDraft } from "@/lib/cv/drafts";
+import { MERGE_UNIT_LABELS, type MergeUnit } from "@/lib/cv/merge-content";
 import type { ReadyCv } from "@/lib/cv/ready-cv";
 import type { CvPatch } from "@/lib/cv/save-queue";
 import type { CvSectionKey } from "@/lib/cv/sections";
@@ -44,16 +45,30 @@ const NO_SECTIONS: ReadonlySet<CvSectionKey> = new Set();
 const HIGHLIGHT_MS = 2_600;
 const APP_HEADER_PX = 64;
 
+const describeUnits = (units: MergeUnit[]) => units.map((unit) => MERGE_UNIT_LABELS[unit]).join(", ");
+
 export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: CvWorkspaceProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useFocusOnMount(headingRef, autoFocus);
 
+  const [restored] = useState(() => restoreDraft(cv));
+  // A copy: RHF mutates its values in place and must never touch the query cache.
+  const [initialContent] = useState(() => structuredClone(restored?.content ?? cv.content));
   const form = useForm<CvContent>({
     resolver: zodResolver(cvContentSchema),
-    // A copy: RHF mutates its values in place and must never touch the query cache.
-    defaultValues: structuredClone(cv.content),
+    defaultValues: initialContent,
     mode: "onChange",
   });
+
+  useEffect(() => {
+    if (!restored) return;
+    toast.info("Restored your unsaved edits", {
+      description:
+        restored.dropped.length > 0
+          ? `Your edits to ${describeUnits(restored.dropped)} were replaced by a newer version.`
+          : undefined,
+    });
+  }, [restored]);
 
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const tabsId = useId();
@@ -72,9 +87,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     setPendingTitle(null);
     setDismissedFlags(new Set());
     if (dropped.length > 0) {
-      const parts = dropped.map((unit) => MERGE_UNIT_LABELS[unit]).join(", ");
       toast.warning("This CV was changed elsewhere", {
-        description: `Your edits to ${parts} were replaced by the newer version.${kept.length > 0 ? " Your other edits were kept." : ""}`,
+        description: `Your edits to ${describeUnits(dropped)} were replaced by the newer version.${kept.length > 0 ? " Your other edits were kept." : ""}`,
       });
     } else if (kept.length > 0) {
       toast.info("This CV was changed elsewhere", { description: "Your edits were kept and saved on top of the newer version." });

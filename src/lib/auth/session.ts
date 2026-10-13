@@ -6,10 +6,19 @@ export const SESSION_CLEAR_PATH = "/auth/session";
 
 let leaving = false;
 
+// Indirection so tests can observe full-page navigations (jsdom does not navigate).
+export const browserNavigation = {
+  replace: (url: string) => window.location.replace(url),
+};
+
+export function isLeaving(): boolean {
+  return leaving;
+}
+
 // Also stops handleSessionExpired from racing late 401s while we leave.
 export function leaveTo(url: string): void {
   leaving = true;
-  window.location.replace(url);
+  browserNavigation.replace(url);
 }
 
 // The proxy only checks that a cookie exists, so a stale one would bounce /login -> /cvs -> 401 forever.
@@ -33,5 +42,5 @@ export async function handleSessionExpired(beforeRedirect?: () => void): Promise
   leaving = true;
   await clearSessionCookie();
   beforeRedirect?.();
-  window.location.replace(authPageHref(LOGIN_PATH, `${pathname}${search}`));
+  browserNavigation.replace(authPageHref(LOGIN_PATH, `${pathname}${search}`));
 }

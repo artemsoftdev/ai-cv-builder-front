@@ -15,6 +15,8 @@ export type ApiRequestOptions = {
 export const CSRF_HEADER = { name: "X-Requested-With", value: "XMLHttpRequest" } as const;
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
+// Browsers refuse keepalive bodies over 64 KiB; larger ones go out as normal requests.
+const KEEPALIVE_MAX_BYTES = 60_000;
 
 const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your connection and try again.";
 const TIMEOUT_MESSAGE = "The server took too long to answer. Check your connection and try again.";
@@ -90,7 +92,8 @@ async function request<T>(path: string, options: ApiRequestOptions, read: (respo
       credentials: "same-origin",
       // Polling must always see fresh state.
       cache: "no-store",
-      keepalive: options.keepalive,
+      keepalive:
+        options.keepalive === true && typeof body === "string" && new TextEncoder().encode(body).length <= KEEPALIVE_MAX_BYTES,
       signal: controller.signal,
     });
     if (!response.ok) throw await toApiError(response);

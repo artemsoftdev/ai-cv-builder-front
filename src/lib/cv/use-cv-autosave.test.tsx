@@ -1,17 +1,25 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Cv, CvContent } from "@/lib/api/types";
+import { isLeaving } from "@/lib/auth/session";
 import { useCv } from "@/lib/query/cv-hooks";
 import { queryKeys } from "@/lib/query/keys";
 import { createQueryClient } from "@/lib/query/query-client";
 import { errorResponse, jsonResponse, mockFetch } from "@/test/http";
 
+import { readDraft } from "./drafts";
 import type { CvSectionKey } from "./sections";
-import { useCvAutosave } from "./use-cv-autosave";
+import { LEAVE_WITH_UNSAVED_EDITS, useCvAutosave } from "./use-cv-autosave";
+
+vi.mock("@/lib/auth/session", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth/session")>()),
+  isLeaving: vi.fn(() => false),
+}));
 
 const CV_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -51,10 +59,12 @@ const makeCv = (overrides: Partial<Cv> = {}): Cv => ({
 
 type Callbacks = { onConflict: () => void; onRemoteUpdate: (sections: CvSectionKey[]) => void };
 
-function Editor({ callbacks, debounceMs }: { callbacks: Callbacks; debounceMs: number }) {
+type EditorProps = { callbacks: Callbacks; debounceMs: number; initial?: CvContent };
+
+function Editor({ callbacks, debounceMs, initial }: EditorProps) {
   const query = useCv(CV_ID);
   const cv = query.data as Cv & { content: CvContent };
-  const form = useForm<CvContent>({ defaultValues: structuredClone(cv.content) });
+  const form = useForm<CvContent>({ defaultValues: structuredClone(initial ?? cv.content) });
   const autosave = useCvAutosave({ cv, refetch: query.refetch, form, debounceMs, ...callbacks });
   return (
     <>
@@ -62,26 +72,36 @@ function Editor({ callbacks, debounceMs }: { callbacks: Callbacks; debounceMs: n
       <input aria-label="Link" {...form.register("contact.links.0.url")} />
       <output aria-label="Save status">{autosave.state.status}</output>
       <output aria-label="Invalid">{String(autosave.invalid)}</output>
+      <Link href="/cvs">Your CVs</Link>
     </>
   );
 }
 
 let queryClient: QueryClient;
 
-function renderEditor({ debounceMs = 10 } = {}) {
+function renderEditor({ debounceMs = 10, initial }: { debounceMs?: number; initial?: CvContent } = {}) {
   queryClient = createQueryClient({ onUnauthorized: vi.fn() });
   queryClient.setQueryData(queryKeys.cv(CV_ID), makeCv());
   const callbacks = { onConflict: vi.fn(), onRemoteUpdate: vi.fn() };
   const user = userEvent.setup();
-  render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
-      <Editor callbacks={callbacks} debounceMs={debounceMs} />
+      <Editor callbacks={callbacks} debounceMs={debounceMs} initial={initial} />
     </QueryClientProvider>,
   );
   const summary = () => screen.getByLabelText<HTMLTextAreaElement>("Summary");
   // One change event: typing char by char would interleave with the 10 ms debounce.
   const setSummary = (value: string) => fireEvent.input(summary(), { target: { value } });
-  return { user, callbacks, summary, setSummary };
+  return { user, callbacks, summary, setSummary, unmount: view.unmount };
+}
+
+const savedCv = async (_input: RequestInfo | URL, init?: RequestInit) => {
+  const body = JSON.parse(String(init?.body)) as { version: number; content?: CvContent };
+  return jsonResponse({ cv: makeCv({ version: body.version + 1, content: body.content ?? content() }) });
+};
+
+function setVisibility(state: DocumentVisibilityState) {
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
 }
 
 const patchCalls = (fetchMock: ReturnType<typeof mockFetch>) =>
@@ -89,6 +109,8 @@ const patchCalls = (fetchMock: ReturnType<typeof mockFetch>) =>
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  sessionStorage.clear();
+  setVisibility("visible");
 });
 
 describe("useCvAutosave", () => {
@@ -233,5 +255,111 @@ describe("useCvAutosave", () => {
     expect(summary()).toHaveValue("Original summary");
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(patchCalls(fetchMock)).toHaveLength(2);
+  });
+});
+
+describe("useCvAutosave when leaving", () => {
+  it.each([
+    ["the tab is hidden", () => {
+      setVisibility("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+    }],
+    ["the page is unloaded", () => window.dispatchEvent(new Event("pagehide"))],
+  ])("sends pending edits right away, with keepalive, when %s", async (_case, leave) => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(savedCv);
+    const { setSummary } = renderEditor({ debounceMs: 60_000 });
+
+    setSummary("Edited just before leaving");
+    act(leave);
+
+    await waitFor(() => expect(patchCalls(fetchMock)).toHaveLength(1));
+    const [, init] = patchCalls(fetchMock)[0]!;
+    expect(init?.keepalive).toBe(true);
+    expect(JSON.parse(String(init?.body))).toMatchObject({ version: 1, content: { summary: "Edited just before leaving" } });
+  });
+
+  it("sends pending edits when the editor unmounts (in-app navigation)", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(savedCv);
+    const { setSummary, unmount } = renderEditor({ debounceMs: 60_000 });
+
+    setSummary("Edited, then went back to the list");
+    unmount();
+
+    await waitFor(() => expect(patchCalls(fetchMock)).toHaveLength(1));
+  });
+
+  it("asks before unloading with unsaved edits, but never holds up an auth redirect", () => {
+    mockFetch().mockImplementation(savedCv);
+    const { setSummary } = renderEditor({ debounceMs: 60_000 });
+    const unload = () => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+
+    expect(unload()).toBe(false);
+    setSummary("Unsaved");
+    expect(unload()).toBe(true);
+    vi.mocked(isLeaving).mockReturnValue(true);
+    expect(unload()).toBe(false);
+  });
+
+  it("asks before following an in-app link while edits can't be saved", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(async (_input, init) =>
+      init?.method === "PATCH" ? errorResponse(403, "CSRF_CHECK_FAILED", "Blocked") : jsonResponse({ cv: makeCv() }),
+    );
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const { setSummary } = renderEditor();
+    const follow = () => fireEvent.click(screen.getByRole("link", { name: "Your CVs" }));
+
+    expect(follow()).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+
+    setSummary("Rejected edit");
+    await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("error"));
+
+    expect(follow()).toBe(false);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(LEAVE_WITH_UNSAVED_EDITS);
+  });
+});
+
+describe("useCvAutosave drafts", () => {
+  it("keeps unsaved edits in a draft for this tab until the server has them", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(savedCv);
+    const { setSummary } = renderEditor({ debounceMs: 200 });
+
+    setSummary("Not saved yet");
+    expect(readDraft(CV_ID)).toMatchObject({ version: 1, base: content(), content: { summary: "Not saved yet" } });
+
+    await waitFor(() => expect(screen.getByLabelText("Save status")).toHaveTextContent("saved"));
+    expect(patchCalls(fetchMock)).toHaveLength(1);
+    expect(readDraft(CV_ID)).toBeNull();
+  });
+
+  it("keeps invalid edits in the draft too: they are still the user's work", () => {
+    mockFetch();
+    renderEditor();
+
+    fireEvent.input(screen.getByLabelText("Link"), { target: { value: "javascript:alert(1)" } });
+
+    expect(readDraft(CV_ID)?.content.contact.links[0]?.url).toBe("javascript:alert(1)");
+  });
+
+  it("saves a restored draft right away when the editor starts from one", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(savedCv);
+
+    renderEditor({ debounceMs: 60_000, initial: content("Restored from before the reload") });
+
+    await waitFor(() => expect(patchCalls(fetchMock)).toHaveLength(1));
+    expect(JSON.parse(String(patchCalls(fetchMock)[0]![1]?.body))).toMatchObject({
+      version: 1,
+      content: { summary: "Restored from before the reload" },
+    });
+    await waitFor(() => expect(readDraft(CV_ID)).toBeNull());
   });
 });

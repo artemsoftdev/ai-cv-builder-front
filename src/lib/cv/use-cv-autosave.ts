@@ -1,13 +1,19 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
+import { cvsApi } from "@/lib/api/endpoints";
 import type { Cv, CvContent } from "@/lib/api/types";
+import { isLeaving } from "@/lib/auth/session";
 import { useUpdateCv } from "@/lib/query/cv-hooks";
+import { queryKeys } from "@/lib/query/keys";
 
 import { cvContentSchema } from "./content-schema";
+import { removeDraft, writeDraft } from "./drafts";
 import { mergeContent, type MergeUnit } from "./merge-content";
+import { registerFlush } from "./pending-saves";
 import { SaveQueue, type CvPatch, type SaveState } from "./save-queue";
 import { changedSections, type CvSectionKey } from "./sections";
 
@@ -37,6 +43,10 @@ export type CvAutosave = {
   retry: () => void;
 };
 
+export const LEAVE_WITH_UNSAVED_EDITS = "Your latest edits aren't saved yet. Leave this page anyway?";
+
+const UNSAVABLE_STATES: ReadonlySet<SaveState["status"]> = new Set(["error", "waiting", "conflict"]);
+
 export function useCvAutosave({
   cv,
   refetch,
@@ -46,16 +56,20 @@ export function useCvAutosave({
   onSaved,
   debounceMs,
 }: UseCvAutosaveOptions): CvAutosave {
-  const { mutateAsync: updateCv } = useUpdateCv(cv.id);
+  const cvId = cv.id;
+  const queryClient = useQueryClient();
+  const { mutateAsync: updateCv } = useUpdateCv(cvId);
   const [state, setState] = useState<SaveState>({ status: "saved" });
-  const [invalid, setInvalid] = useState(false);
   const [queue] = useState(() => new SaveQueue(cv.version, { debounceMs }));
+  // The form may start from a restored draft rather than from the server copy.
+  const [startsUnsaved] = useState(() => JSON.stringify(form.getValues()) !== JSON.stringify(cv.content));
+  const [invalid, setInvalid] = useState(() => startsUnsaved && !cvContentSchema.safeParse(form.getValues()).success);
 
   // JSON last handed to the queue (or loaded): tells real edits from re-renders and resets.
   const queuedJson = useRef<string | null>(null);
   // Last JSON the change handler saw, to skip notifications without a value change.
   const seenJson = useRef<string | null>(null);
-  const invalidRef = useRef(false);
+  const invalidRef = useRef(invalid);
   // Server content at queue.version: the base of a merge.
   const baseContent = useRef(cv.content);
   // Version the last merge was re-sent onto; cleared by any successful save.
@@ -68,6 +82,13 @@ export function useCvAutosave({
   });
 
   const { subscribe, getValues, trigger, reset } = form;
+
+  const saveDraft = useCallback(
+    (content: CvContent) => {
+      if (baseContent.current) writeDraft(cvId, { version: queue.version, base: baseContent.current, content });
+    },
+    [cvId, queue],
+  );
 
   const showServerContent = useCallback(
     (latest: Cv & { content: CvContent }, shown: CvContent = latest.content) => {
@@ -87,10 +108,11 @@ export function useCvAutosave({
       queuedJson.current = valid ? shownJson : serverJson;
       if (!valid) void trigger();
       else if (shownJson !== serverJson) queue.schedule({ content: structuredClone(shown) }, { immediate: true });
+      if (shownJson !== serverJson) saveDraft(shown);
 
       if (sections.length > 0) onRemoteUpdateRef.current?.(sections);
     },
-    [queue, getValues, reset, trigger],
+    [queue, getValues, reset, trigger, saveDraft],
   );
 
   const onConflictRef = useRef(onConflict);
@@ -119,14 +141,19 @@ export function useCvAutosave({
   // The queue outlives renders: keep its closures current.
   useEffect(() => {
     queue.setHandlers({
-      send: async (patch) => {
-        const saved = await updateCv(patch);
+      send: async (patch, { keepalive }) => {
+        // The page may be going away: start the request now, without the mutation's async setup.
+        const saved = keepalive ? await cvsApi.update(cvId, patch, { keepalive }) : await updateCv(patch);
+        if (keepalive) queryClient.setQueryData(queryKeys.cv(cvId), saved);
         // The server's normalised copy is the base for the next edits.
         if (saved.content) baseContent.current = saved.content;
         mergedOnto.current = null;
         return { version: saved.version };
       },
-      onStateChange: setState,
+      onStateChange: (next) => {
+        setState(next);
+        if (next.status === "saved" && !invalidRef.current) removeDraft(cvId);
+      },
       onSaved,
       onConflict: () => void reloadAfterConflict(),
       onBusy: () => {
@@ -138,10 +165,16 @@ export function useCvAutosave({
         });
       },
     });
-  }, [queue, updateCv, refetch, onSaved, reloadAfterConflict]);
+  }, [cvId, queue, queryClient, updateCv, refetch, onSaved, reloadAfterConflict]);
 
   useEffect(() => {
-    queuedJson.current = JSON.stringify(getValues());
+    const initialJson = JSON.stringify(getValues());
+    queuedJson.current = initialJson;
+    if (startsUnsaved) {
+      saveDraft(JSON.parse(initialJson) as CvContent);
+      if (invalidRef.current) void trigger();
+      else queue.schedule({ content: JSON.parse(initialJson) as CvContent }, { immediate: true });
+    }
     return subscribe({
       formState: { values: true },
       callback: ({ values }) => {
@@ -152,6 +185,7 @@ export function useCvAutosave({
         const valid = json === queuedJson.current || cvContentSchema.safeParse(values).success;
         invalidRef.current = !valid;
         setInvalid(!valid);
+        if (json !== queuedJson.current) saveDraft(JSON.parse(json) as CvContent);
         if (!valid) {
           // Show every blocking error, not only the one in the edited field.
           void trigger();
@@ -163,7 +197,7 @@ export function useCvAutosave({
         queue.schedule({ content: JSON.parse(json) as CvContent });
       },
     });
-  }, [subscribe, getValues, trigger, queue]);
+  }, [subscribe, getValues, trigger, queue, saveDraft, startsUnsaved]);
 
   // Load newer server content unless local edits would be lost; those hit VERSION_CONFLICT and get merged.
   useEffect(() => {
@@ -179,22 +213,42 @@ export function useCvAutosave({
   }, [cv.busy, state, queue]);
 
   useEffect(() => {
+    const flushBeforeLeaving = () => void queue.flush({ keepalive: true });
     const onVisibilityChange = () => {
       // Mobile browsers may kill a background tab without further notice.
-      if (document.visibilityState === "hidden") void queue.flush();
+      if (document.visibilityState === "hidden") flushBeforeLeaving();
     };
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!queue.hasUnsavedChanges && !invalidRef.current) return;
+      // An auth redirect must not be held up: nothing can be saved after a 401, and the draft survives.
+      if (isLeaving() || (!queue.hasUnsavedChanges && !invalidRef.current)) return;
       event.preventDefault();
       // Older Safari only shows the prompt when returnValue is set.
       event.returnValue = "";
     };
+    // In-app navigation never fires beforeunload: ask when the edits can't be saved right now.
+    const onLinkClick = (event: MouseEvent) => {
+      if (!invalidRef.current && !UNSAVABLE_STATES.has(queue.state.status)) return;
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || (link.target && link.target !== "_self") || link.hasAttribute("download")) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      if (!window.confirm(LEAVE_WITH_UNSAVED_EDITS)) event.preventDefault();
+    };
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flushBeforeLeaving);
     window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("click", onLinkClick, true);
+    const unregister = registerFlush(() => queue.flush());
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flushBeforeLeaving);
       window.removeEventListener("beforeunload", onBeforeUnload);
-      void queue.flush();
+      window.removeEventListener("click", onLinkClick, true);
+      unregister();
+      flushBeforeLeaving();
     };
   }, [queue]);
 

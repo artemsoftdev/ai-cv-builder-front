@@ -201,15 +201,18 @@ describe("apiFetch deadline", () => {
     expect((error as Error).name).toBe("AbortError");
   });
 
-  it("sends keepalive only when asked", async () => {
+  it("sends keepalive only when asked and when the body fits the quota", async () => {
     const fetchMock = mockFetch();
     fetchMock.mockImplementation(async () => jsonResponse({ cv: { id: "1" } }));
 
     await cvsApi.update("1", { version: 1 }, { keepalive: true });
     await cvsApi.update("1", { version: 2 });
+    await cvsApi.update("1", { version: 3, title: "x".repeat(70_000) }, { keepalive: true });
 
     expect(fetchCall(fetchMock, 0).init.keepalive).toBe(true);
     expect(fetchCall(fetchMock, 1).init.keepalive).toBe(false);
+    // Over the browser's keepalive quota: sent normally rather than rejected.
+    expect(fetchCall(fetchMock, 2).init.keepalive).toBe(false);
   });
 });
 
