@@ -8,11 +8,16 @@ export type ApiRequestOptions = {
   formData?: FormData;
   accept?: string;
   signal?: AbortSignal;
+  timeoutMs?: number;
+  keepalive?: boolean;
 };
 
 export const CSRF_HEADER = { name: "X-Requested-With", value: "XMLHttpRequest" } as const;
 
+export const DEFAULT_TIMEOUT_MS = 30_000;
+
 const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your connection and try again.";
+const TIMEOUT_MESSAGE = "The server took too long to answer. Check your connection and try again.";
 
 // DOMException is not an Error subclass in every runtime.
 function isAbortError(error: unknown): boolean {
@@ -46,11 +51,11 @@ async function toApiError(response: Response): Promise<ApiError> {
   });
 }
 
-export async function apiRequest(path: string, options: ApiRequestOptions = {}): Promise<Response> {
+// The deadline also covers reading the body: a stalled response must not hang autosave forever.
+async function request<T>(path: string, options: ApiRequestOptions, read: (response: Response) => Promise<T>): Promise<T> {
   const method = options.method ?? "GET";
   const headers = new Headers({ Accept: options.accept ?? "application/json" });
   let body: BodyInit | undefined;
-
   if (options.json !== undefined) {
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(options.json);
@@ -59,47 +64,65 @@ export async function apiRequest(path: string, options: ApiRequestOptions = {}):
   }
   if (method !== "GET") headers.set(CSRF_HEADER.name, CSRF_HEADER.value);
 
-  let response: Response;
+  const controller = new AbortController();
+  const caller = options.signal;
+  const forwardAbort = () => controller.abort(caller?.reason);
+  if (caller?.aborted) forwardAbort();
+  else caller?.addEventListener("abort", forwardAbort, { once: true });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  const toRequestError = (error: unknown) => {
+    if (error instanceof ApiError) return error;
+    if (timedOut) return new ApiError({ status: 0, code: "NETWORK_ERROR", message: TIMEOUT_MESSAGE });
+    if (caller?.aborted || isAbortError(error)) return error;
+    return new ApiError({ status: 0, code: "NETWORK_ERROR", message: NETWORK_ERROR_MESSAGE });
+  };
+
   try {
-    response = await fetch(path, {
+    const response = await fetch(path, {
       method,
       headers,
       body,
       credentials: "same-origin",
       // Polling must always see fresh state.
       cache: "no-store",
-      signal: options.signal,
+      keepalive: options.keepalive,
+      signal: controller.signal,
     });
+    if (!response.ok) throw await toApiError(response);
+    return await read(response);
   } catch (error) {
-    if (isAbortError(error)) throw error;
-    throw new ApiError({ status: 0, code: "NETWORK_ERROR", message: NETWORK_ERROR_MESSAGE });
+    throw toRequestError(error);
+  } finally {
+    clearTimeout(timer);
+    caller?.removeEventListener("abort", forwardAbort);
   }
-
-  if (!response.ok) throw await toApiError(response);
-  return response;
 }
 
-export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const response = await apiRequest(path, options);
-  if (response.status === 204) return undefined as T;
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw new ApiError({
-      status: response.status,
-      code: "INTERNAL",
-      message: "The server sent an unexpected response.",
-    });
-  }
+export function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return request(path, options, async (response) => {
+    if (response.status === 204) return undefined as T;
+    const text = await response.text();
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new ApiError({ status: response.status, code: "INTERNAL", message: "The server sent an unexpected response." });
+    }
+  });
 }
 
 export type DownloadedFile = { blob: Blob; filename: string | null };
 
-export async function apiFetchBlob(path: string, options: ApiRequestOptions = {}): Promise<DownloadedFile> {
+export function apiFetchBlob(path: string, options: ApiRequestOptions = {}): Promise<DownloadedFile> {
   // The payload is binary, but errors still come back as JSON.
-  const response = await apiRequest(path, { accept: "*/*", ...options });
-  const blob = await response.blob();
-  return { blob, filename: parseContentDispositionFilename(response.headers.get("Content-Disposition")) };
+  return request(path, { accept: "*/*", ...options }, async (response) => ({
+    blob: await response.blob(),
+    filename: parseContentDispositionFilename(response.headers.get("Content-Disposition")),
+  }));
 }
 
 export function parseContentDispositionFilename(header: string | null): string | null {

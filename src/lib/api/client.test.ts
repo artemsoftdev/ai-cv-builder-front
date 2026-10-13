@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { errorResponse, fetchCall, jsonResponse, mockFetch } from "@/test/http";
 
-import { apiFetch, apiFetchBlob, parseContentDispositionFilename } from "./client";
+import { apiFetch, apiFetchBlob, DEFAULT_TIMEOUT_MS, parseContentDispositionFilename } from "./client";
 import { cvsApi, toCreateCvFormData } from "./endpoints";
 import { ApiError, getValidationIssues } from "./errors";
 
@@ -141,6 +141,75 @@ describe("apiFetch responses", () => {
     mockFetch().mockResolvedValue(new Response("not json", { status: 200 }));
 
     await expect(apiFetch("/api/cvs")).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});
+
+// A fetch that never answers on its own, like a stalled mobile connection.
+function stalledFetch() {
+  const fetchMock = mockFetch();
+  fetchMock.mockImplementation(
+    (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason as Error));
+      }),
+  );
+  return fetchMock;
+}
+
+describe("apiFetch deadline", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives up on a stalled request with a retryable NETWORK_ERROR", async () => {
+    vi.useFakeTimers();
+    stalledFetch();
+
+    const result = apiFetch("/api/cvs/1", { method: "PATCH", json: {} }).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(DEFAULT_TIMEOUT_MS);
+
+    const error = await result;
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 0, code: "NETWORK_ERROR", message: expect.stringMatching(/took too long/) });
+  });
+
+  it("gives uploads more time", async () => {
+    vi.useFakeTimers();
+    stalledFetch();
+    let settled = false;
+
+    const result = cvsApi
+      .create({ targetRole: "Engineer", text: "x".repeat(60) })
+      .catch((e: unknown) => e)
+      .finally(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(DEFAULT_TIMEOUT_MS + 1_000);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(await result).toMatchObject({ code: "NETWORK_ERROR" });
+  });
+
+  it("still reports a cancellation by the caller as an abort", async () => {
+    stalledFetch();
+    const controller = new AbortController();
+
+    const result = apiFetch("/api/cvs", { signal: controller.signal }).catch((e: unknown) => e);
+    controller.abort();
+
+    const error = await result;
+    expect(error).not.toBeInstanceOf(ApiError);
+    expect((error as Error).name).toBe("AbortError");
+  });
+
+  it("sends keepalive only when asked", async () => {
+    const fetchMock = mockFetch();
+    fetchMock.mockImplementation(async () => jsonResponse({ cv: { id: "1" } }));
+
+    await cvsApi.update("1", { version: 1 }, { keepalive: true });
+    await cvsApi.update("1", { version: 2 });
+
+    expect(fetchCall(fetchMock, 0).init.keepalive).toBe(true);
+    expect(fetchCall(fetchMock, 1).init.keepalive).toBe(false);
   });
 });
 

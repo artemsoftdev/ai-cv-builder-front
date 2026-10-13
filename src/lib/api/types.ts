@@ -21,9 +21,6 @@ export type ClientErrorCode = "NETWORK_ERROR";
 
 export type ApiErrorCode = ServerErrorCode | ClientErrorCode;
 
-export type ApiErrorBody = {
-  error: { code: string; message: string; details?: Record<string, unknown> };
-};
 
 export type ValidationIssue = { path: string; message: string };
 
@@ -162,11 +159,6 @@ export type UserResponse = { user: User };
 export type CvResponse = { cv: Cv };
 export type CvListResponse = { items: CvSummary[] };
 
-export type HealthResponse = {
-  status: string;
-  db: "ok" | "down";
-  llm: "configured" | "missing_key" | "fake";
-};
 
 export const API_LIMITS = {
   password: { min: 8, max: 128 },

@@ -6,7 +6,6 @@ import type {
   CvListResponse,
   CvResponse,
   CvSummary,
-  HealthResponse,
   UpdateCvInput,
   User,
   UserResponse,
@@ -15,9 +14,9 @@ import type {
 // Encoding keeps a malformed id from changing the route.
 const seg = (value: string) => encodeURIComponent(value);
 
-export const healthApi = {
-  get: (signal?: AbortSignal) => apiFetch<HealthResponse>("/api/health", { signal }),
-};
+// Uploads include the PDF parsing on the server; rendering the PDF takes a few seconds too.
+const UPLOAD_TIMEOUT_MS = 120_000;
+const PDF_TIMEOUT_MS = 60_000;
 
 export const authApi = {
   signup: async (credentials: Credentials): Promise<User> =>
@@ -52,10 +51,16 @@ export const cvsApi = {
     (await apiFetch<CvResponse>(`/api/cvs/${seg(id)}`, { signal })).cv,
 
   create: async (input: CreateCvInput): Promise<Cv> =>
-    (await apiFetch<CvResponse>("/api/cvs", { method: "POST", formData: toCreateCvFormData(input) })).cv,
+    (
+      await apiFetch<CvResponse>("/api/cvs", {
+        method: "POST",
+        formData: toCreateCvFormData(input),
+        timeoutMs: UPLOAD_TIMEOUT_MS,
+      })
+    ).cv,
 
-  update: async (id: string, patch: UpdateCvInput): Promise<Cv> =>
-    (await apiFetch<CvResponse>(`/api/cvs/${seg(id)}`, { method: "PATCH", json: patch })).cv,
+  update: async (id: string, patch: UpdateCvInput, { keepalive = false } = {}): Promise<Cv> =>
+    (await apiFetch<CvResponse>(`/api/cvs/${seg(id)}`, { method: "PATCH", json: patch, keepalive })).cv,
 
   remove: (id: string): Promise<void> => apiFetch<void>(`/api/cvs/${seg(id)}`, { method: "DELETE" }),
 
@@ -78,5 +83,5 @@ export const cvsApi = {
     ).cv,
 
   downloadPdf: (id: string, signal?: AbortSignal): Promise<DownloadedFile> =>
-    apiFetchBlob(`/api/cvs/${seg(id)}/pdf`, { signal }),
+    apiFetchBlob(`/api/cvs/${seg(id)}/pdf`, { signal, timeoutMs: PDF_TIMEOUT_MS }),
 };
