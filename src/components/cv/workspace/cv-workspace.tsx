@@ -252,7 +252,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
             className="mt-0 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pb-2"
             {...panelProps("preview")}
           >
-            <CvPreview />
+            {/* Hidden on phones unless its tab is open: don't re-render it on every keystroke. */}
+            {(isDesktop || activeTab === "preview") && <CvPreview />}
           </aside>
         </div>
 

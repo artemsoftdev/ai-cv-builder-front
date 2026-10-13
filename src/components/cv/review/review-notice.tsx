@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ShieldCheck } from "lucide-react";
+import { ChevronDown, Quote, ShieldCheck } from "lucide-react";
 import { useId, useState } from "react";
 
 import type { RemovedClaim } from "@/lib/api/types";
@@ -29,22 +29,29 @@ export function describeRemovedField(field: string): string {
 }
 
 export function ReviewNotice({ removed }: { removed: RemovedClaim[] }) {
-  const { openFlagCount } = useReview();
+  const { openFlagCount, hasEvidence } = useReview();
   const [showRemoved, setShowRemoved] = useState(false);
   const listId = useId();
-  if (openFlagCount === 0 && removed.length === 0) return null;
+  if (openFlagCount === 0 && removed.length === 0 && !hasEvidence) return null;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4 text-sm shadow-card">
       <div className="flex gap-3">
         <ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
         <div className="min-w-0 space-y-1">
-          <p className="font-medium text-fg">Every detail was checked against your source</p>
+          <p className="font-medium text-fg">Claude&apos;s draft was checked against your source</p>
           <p className="text-fg-muted">
             {openFlagCount > 0
               ? `${openFlagCount === 1 ? "1 detail" : `${openFlagCount} details`} could not be confirmed. Look for the amber “Check” badges: edit the text or dismiss the warning.`
               : "Nothing left to double-check."}
           </p>
+          {hasEvidence && (
+            <p className="text-fg-muted">
+              The green quote mark
+              <Quote aria-hidden="true" className="mx-1 inline size-3.5 align-[-0.125em] text-success" />
+              next to a detail shows where it was found in your source: tap it to see the quote.
+            </p>
+          )}
         </div>
       </div>
       {removed.length > 0 && (

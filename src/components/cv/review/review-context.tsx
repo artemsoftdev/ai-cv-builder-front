@@ -9,6 +9,7 @@ type ReviewContextValue = {
   evidenceFor: (itemId: string) => readonly string[];
   dismiss: (flagIds: string[]) => void;
   openFlagCount: number;
+  hasEvidence: boolean;
   disabled: boolean;
 };
 
@@ -19,6 +20,7 @@ const ReviewContext = createContext<ReviewContextValue>({
   evidenceFor: () => [],
   dismiss: () => undefined,
   openFlagCount: 0,
+  hasEvidence: false,
   disabled: true,
 });
 
@@ -43,6 +45,7 @@ export function ReviewProvider({ review, dismissed, onDismiss, disabled, childre
       evidenceFor: (itemId) => (Object.hasOwn(evidence, itemId) ? (evidence[itemId] ?? EMPTY) : EMPTY),
       dismiss: onDismiss,
       openFlagCount: [...flagsByItem.values()].reduce((total, flags) => total + flags.length, 0),
+      hasEvidence: Object.values(evidence).some((quotes) => quotes.length > 0),
       disabled,
     };
   }, [review, dismissed, onDismiss, disabled]);

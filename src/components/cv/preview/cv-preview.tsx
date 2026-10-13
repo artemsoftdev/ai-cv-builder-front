@@ -12,6 +12,14 @@ import { CvDocument } from "./cv-document";
 // A4 at 96 dpi.
 const PAGE_WIDTH = 794;
 const PAGE_HEIGHT = 1123;
+// The PDF repeats its 40 pt top and bottom padding on every page.
+const PAGE_PADDING = (40 * 96) / 72;
+const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - 2 * PAGE_PADDING;
+
+// An estimate: the PDF also keeps bullets and entry headings in one piece, which can add a page.
+export function estimatePages(sheetHeight: number): number {
+  return Math.max(1, Math.ceil((sheetHeight - 2 * PAGE_PADDING - 1) / PAGE_CONTENT_HEIGHT));
+}
 
 export function CvPreview({ className }: { className?: string }) {
   // The form always holds a complete CvContent.
@@ -23,14 +31,14 @@ export function CvPreview({ className }: { className?: string }) {
   const { height } = useElementSize(sheetRef);
 
   const scale = width > 0 ? width / PAGE_WIDTH : 0;
-  const pages = Math.max(1, Math.ceil(height / PAGE_HEIGHT));
+  const pages = estimatePages(height);
 
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className="text-sm font-semibold text-fg">Preview</h2>
         <p className="text-xs text-fg-subtle">
-          A4 · {pages} {pages === 1 ? "page" : "pages"}
+          A4 · {pages === 1 ? "1 page" : `about ${pages} pages`}
         </p>
       </div>
       <div
@@ -49,14 +57,16 @@ export function CvPreview({ className }: { className?: string }) {
             <div
               key={index}
               className="absolute inset-x-0 border-t-2 border-dashed border-border-strong"
-              style={{ top: (index + 1) * PAGE_HEIGHT }}
+              style={{ top: PAGE_PADDING + (index + 1) * PAGE_CONTENT_HEIGHT }}
             >
               <span className="absolute -top-3.5 right-4 bg-white px-2 text-xs text-fg-subtle">Page {index + 2}</span>
             </div>
           ))}
         </div>
       </div>
-      <p className="px-0.5 text-xs text-fg-subtle">The downloaded PDF has the same layout, with selectable text.</p>
+      <p className="px-0.5 text-xs text-fg-subtle">
+        The downloaded PDF uses the same layout, with selectable text. Page breaks here are approximate.
+      </p>
     </div>
   );
 }
