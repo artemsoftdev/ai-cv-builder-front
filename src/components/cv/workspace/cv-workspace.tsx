@@ -66,13 +66,17 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
   // Shown until the server confirms the rename (or wins a conflict).
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
   const [updatedSections, setUpdatedSections] = useState<ReadonlySet<CvSectionKey>>(NO_SECTIONS);
+  // Dismissed review flags are hidden at once; the server drops them with the PATCH response.
+  const [dismissedFlags, setDismissedFlags] = useState<ReadonlySet<string>>(() => new Set());
 
   const handleSaved = useCallback((patch: CvPatch) => {
     if (patch.title !== undefined) setPendingTitle((current) => (current === patch.title ? null : current));
   }, []);
 
   const handleConflict = useCallback(() => {
+    // The queued rename / dismissals were dropped: show the server's state again.
     setPendingTitle(null);
+    setDismissedFlags(new Set());
     toast.warning("This CV changed elsewhere — reloaded the latest version", {
       description: "Your most recent edit could not be applied on top of it.",
     });
@@ -92,6 +96,11 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     const timer = setTimeout(() => setUpdatedSections(NO_SECTIONS), HIGHLIGHT_MS);
     return () => clearTimeout(timer);
   }, [updatedSections]);
+
+  const dismissFlags = (flagIds: string[]) => {
+    setDismissedFlags((current) => new Set([...current, ...flagIds]));
+    autosave.dismissFlags(flagIds);
+  };
 
   const renameCv = (title: string) => {
     setPendingTitle(title);
@@ -116,6 +125,8 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
     <DownloadPdfButton cvId={cv.id} title={pendingTitle ?? cv.title} ensureSaved={ensureSaved} disabled={cv.busy} />
   );
   const openQuestions = cv.questions.filter(needsAnswer).length;
+  // Phones always have the Questions tab (with an empty state); desktop only shows real ones.
+  const showQuestions = !isDesktop || cv.questions.length > 0;
 
   // Phones show one panel at a time (tabs); from `lg` everything is visible side by side.
   const panelProps = (tab: WorkspaceTab) =>
@@ -175,12 +186,19 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
 
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
           <div className="min-w-0 space-y-6">
-            <div {...panelProps("questions")}>
-              <QuestionsPanel cv={cv} prepareAnswer={prepareAnswer} showEmptyState={!isDesktop} />
-            </div>
+            {showQuestions && (
+              <div {...panelProps("questions")}>
+                <QuestionsPanel cv={cv} prepareAnswer={prepareAnswer} showEmptyState={!isDesktop} />
+              </div>
+            )}
 
             <div {...panelProps("edit")}>
-              <ReviewProvider review={cv.review} onDismiss={autosave.dismissFlags} disabled={cv.busy}>
+              <ReviewProvider
+                review={cv.review}
+                dismissed={dismissedFlags}
+                onDismiss={dismissFlags}
+                disabled={cv.busy}
+              >
                 <div className="space-y-4">
                   {!isDesktop && openQuestions > 0 && (
                     <QuestionsHint count={openQuestions} onOpen={() => changeTab("questions")} />

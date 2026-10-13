@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useMemo, useState, type ReactNode } from "react";
+import { createContext, use, useMemo, type ReactNode } from "react";
 
 import type { CvReview, ReviewFlag } from "@/lib/api/types";
 
@@ -29,18 +29,15 @@ const ReviewContext = createContext<ReviewContextValue>({
 
 type ReviewProviderProps = {
   review: CvReview | null;
+  /** Flags dismissed in this session, hidden before the server confirms it. */
+  dismissed: ReadonlySet<string>;
   onDismiss: (flagIds: string[]) => void;
   disabled: boolean;
   children: ReactNode;
 };
 
-/**
- * Grounding-verifier output (flags + evidence) indexed by item id for the editor. Dismissed
- * flags disappear immediately; the server drops them with the next PATCH response.
- */
-export function ReviewProvider({ review, onDismiss, disabled, children }: ReviewProviderProps) {
-  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
-
+/** Grounding-verifier output (flags + evidence) indexed by item id for the editor. */
+export function ReviewProvider({ review, dismissed, onDismiss, disabled, children }: ReviewProviderProps) {
   const value = useMemo<ReviewContextValue>(() => {
     const flagsByItem = new Map<string, ReviewFlag[]>();
     for (const flag of review?.flags ?? []) {
@@ -51,10 +48,7 @@ export function ReviewProvider({ review, onDismiss, disabled, children }: Review
     return {
       flagsFor: (itemId) => flagsByItem.get(itemId) ?? EMPTY,
       evidenceFor: (itemId) => (Object.hasOwn(evidence, itemId) ? (evidence[itemId] ?? EMPTY) : EMPTY),
-      dismiss: (flagIds) => {
-        setDismissed((current) => new Set([...current, ...flagIds]));
-        onDismiss(flagIds);
-      },
+      dismiss: onDismiss,
       openFlagCount: [...flagsByItem.values()].reduce((total, flags) => total + flags.length, 0),
       disabled,
     };

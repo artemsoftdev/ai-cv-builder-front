@@ -29,14 +29,18 @@ type QuestionsPanelProps = {
 
 type Announcement = { id: number; text: string; tone: "success" | "error" };
 
-/** What changed between two polls, for the live region and a toast. */
-function describeTransition(previous: CvQuestion[], next: CvQuestion[], content: CvContent): string | null {
+/** An answer that finished applying between two polls, for the live region and a toast. */
+function describeTransition(
+  previous: CvQuestion[],
+  next: CvQuestion[],
+  content: CvContent,
+): Omit<Announcement, "id"> | null {
   for (const question of next) {
     const before = previous.find((candidate) => candidate.id === question.id);
     if (before?.status !== "applying") continue;
     const target = describeQuestionTarget(question, content);
-    if (question.status === "applied") return `Your answer was applied: ${target}.`;
-    if (question.status === "failed") return `Your answer couldn't be applied: ${target}.`;
+    if (question.status === "applied") return { text: `Your answer was applied: ${target}.`, tone: "success" };
+    if (question.status === "failed") return { text: `Your answer couldn't be applied: ${target}.`, tone: "error" };
   }
   return null;
 }
@@ -56,11 +60,9 @@ export function QuestionsPanel({ cv, prepareAnswer, showEmptyState = false, clas
   const [previousQuestions, setPreviousQuestions] = useState(cv.questions);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   if (cv.questions !== previousQuestions) {
-    const text = describeTransition(previousQuestions, cv.questions, cv.content);
+    const transition = describeTransition(previousQuestions, cv.questions, cv.content);
     setPreviousQuestions(cv.questions);
-    if (text) {
-      setAnnouncement({ id: (announcement?.id ?? 0) + 1, text, tone: text.includes("couldn't") ? "error" : "success" });
-    }
+    if (transition) setAnnouncement({ id: (announcement?.id ?? 0) + 1, ...transition });
   }
   useEffect(() => {
     if (!announcement) return;

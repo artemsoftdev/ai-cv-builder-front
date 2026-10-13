@@ -19,6 +19,8 @@ const PAGE_HEIGHT = 1123;
  * Hidden from assistive tech: it repeats the editor's content, and the PDF is the output.
  */
 export function CvPreview({ className }: { className?: string }) {
+  // The form always holds a complete CvContent (its default values are one), so the
+  // partial type useWatch reports for the whole form does not apply here.
   const values = useWatch<CvContent>() as CvContent;
   // Typing stays responsive: the preview catches up when React has time.
   const content = useDeferredValue(values);

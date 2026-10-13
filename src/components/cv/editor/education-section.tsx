@@ -12,7 +12,7 @@ import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
 import { ItemActions } from "./item-actions";
 import { SectionCard } from "./section-card";
-import { removeWithUndo } from "./use-undoable-remove";
+import { removeWithUndo } from "./remove-with-undo";
 
 export function EducationSection({ updated }: { updated: boolean }) {
   const { control, getValues } = useFormContext<CvContent>();
