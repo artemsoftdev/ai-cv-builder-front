@@ -1,83 +1,38 @@
 "use client";
 
-import { Briefcase, Plus } from "lucide-react";
-import { motion } from "motion/react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Briefcase } from "lucide-react";
+import type { ReactNode } from "react";
+import { useWatch } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newExperienceItem } from "@/lib/cv/new-item";
 
 import { BulletList } from "./bullet-list";
-import { ItemReview } from "../review/item-review";
+import { EntryHeader, EntryList } from "./entry-list";
 import { FormTextField } from "./form-text-field";
-import { ItemActions } from "./item-actions";
-import { SectionCard } from "./section-card";
-import { removeWithUndo } from "./remove-with-undo";
 
 export function ExperienceSection({ updated }: { updated: boolean }) {
-  const { control, getValues } = useFormContext<CvContent>();
-  const { fields, append, insert, remove, move } = useFieldArray({ control, name: "experience", keyName: "key" });
-  const max = API_LIMITS.content.experienceItems;
-
   return (
-    <SectionCard section="experience" title="Experience" icon={<Briefcase />} count={fields.length} updated={updated}>
-      {fields.length === 0 ? (
-        <p className="text-sm text-fg-muted">No positions yet.</p>
-      ) : (
-        <ol className="space-y-4">
-          {fields.map((field, index) => (
-            <motion.li
-              key={field.key}
-              layout="position"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              data-review-scope
-              className="rounded-lg border border-border bg-canvas/60 p-3 sm:p-4"
-            >
-              <ExperienceItemEditor
-                index={index}
-                itemId={field.id}
-                count={fields.length}
-                onMove={move}
-                onRemove={() =>
-                  removeWithUndo({
-                    index,
-                    items: () => getValues("experience"),
-                    remove,
-                    insert: (at, item) => insert(at, item),
-                    message: "Position removed",
-                  })
-                }
-              />
-            </motion.li>
-          ))}
-        </ol>
-      )}
-      <Button
-        variant="secondary"
-        size="sm"
-        className="mt-4"
-        leftIcon={<Plus aria-hidden="true" className="size-4" />}
-        disabled={fields.length >= max}
-        onClick={() => append(newExperienceItem(), { shouldFocus: true })}
-      >
-        Add position
-      </Button>
-    </SectionCard>
+    <EntryList
+      name="experience"
+      title="Experience"
+      icon={<Briefcase />}
+      updated={updated}
+      max={API_LIMITS.content.experienceItems}
+      emptyText="No positions yet."
+      addLabel="Add position"
+      removedMessage="Position removed"
+      firstField="title"
+      newEntry={newExperienceItem}
+    >
+      {({ index, itemId, actions }) => <ExperienceItemEditor index={index} itemId={itemId} actions={actions} />}
+    </EntryList>
   );
 }
 
-type ExperienceItemEditorProps = {
-  index: number;
-  itemId: string;
-  count: number;
-  onMove: (from: number, to: number) => void;
-  onRemove: () => void;
-};
+type ExperienceItemEditorProps = { index: number; itemId: string; actions: (label: string) => ReactNode };
 
-function ExperienceItemEditor({ index, itemId, count, onMove, onRemove }: ExperienceItemEditorProps) {
+function ExperienceItemEditor({ index, itemId, actions }: ExperienceItemEditorProps) {
   const [title, company] = useWatch<CvContent, [`experience.${number}.title`, `experience.${number}.company`]>({
     name: [`experience.${index}.title`, `experience.${index}.company`],
   });
@@ -85,11 +40,7 @@ function ExperienceItemEditor({ index, itemId, count, onMove, onRemove }: Experi
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2">
-        <h3 className="min-w-0 flex-1 pt-2 text-sm font-semibold break-words text-fg">{heading}</h3>
-        <ItemReview itemId={itemId} label={`“${heading}”`} />
-        <ItemActions itemId={itemId} index={index} count={count} label={`position ${heading}`} onMove={onMove} onRemove={onRemove} />
-      </div>
+      <EntryHeader heading={heading} itemId={itemId} actions={actions(`position ${heading}`)} />
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
         <FormTextField name={`experience.${index}.title`} label="Job title" className="col-span-2 sm:col-span-1" />
         <FormTextField name={`experience.${index}.company`} label="Company" className="col-span-2 sm:col-span-1" />

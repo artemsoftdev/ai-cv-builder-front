@@ -1,85 +1,41 @@
 "use client";
 
-import { Plus, Wrench } from "lucide-react";
-import { motion } from "motion/react";
-import { useId } from "react";
-import { useController, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Wrench } from "lucide-react";
+import { useId, type ReactNode } from "react";
+import { useController, useWatch } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newSkillGroup } from "@/lib/cv/new-item";
 
 import { useEditor } from "./editor-context";
+import { EntryList } from "./entry-list";
 import { FormTextField } from "./form-text-field";
-import { ItemActions } from "./item-actions";
-import { SectionCard } from "./section-card";
 import { TagInput } from "./tag-input";
-import { removeWithUndo } from "./remove-with-undo";
 
 export function SkillsSection({ updated }: { updated: boolean }) {
-  const { control, getValues } = useFormContext<CvContent>();
-  const { fields, append, insert, remove, move } = useFieldArray({ control, name: "skills", keyName: "key" });
-  const max = API_LIMITS.content.skillGroups;
-
   return (
-    <SectionCard section="skills" title="Skills" icon={<Wrench />} count={fields.length} updated={updated}>
-      {fields.length === 0 ? (
-        <p className="text-sm text-fg-muted">No skills yet.</p>
-      ) : (
-        <ol className="space-y-4">
-          {fields.map((field, index) => (
-            <motion.li
-              key={field.key}
-              layout="position"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className="rounded-lg border border-border bg-canvas/60 p-3 sm:p-4"
-            >
-              <SkillGroupEditor
-                index={index}
-                itemId={field.id}
-                count={fields.length}
-                onMove={move}
-                onRemove={() =>
-                  removeWithUndo({
-                    index,
-                    items: () => getValues("skills"),
-                    remove,
-                    insert: (at, group) => insert(at, group),
-                    message: "Skill group removed",
-                  })
-                }
-              />
-            </motion.li>
-          ))}
-        </ol>
-      )}
-      <Button
-        variant="secondary"
-        size="sm"
-        className="mt-4"
-        leftIcon={<Plus aria-hidden="true" className="size-4" />}
-        disabled={fields.length >= max}
-        onClick={() => append(newSkillGroup(), { shouldFocus: true })}
-      >
-        Add skill group
-      </Button>
-    </SectionCard>
+    <EntryList
+      name="skills"
+      title="Skills"
+      icon={<Wrench />}
+      updated={updated}
+      max={API_LIMITS.content.skillGroups}
+      emptyText="No skills yet."
+      addLabel="Add skill group"
+      removedMessage="Skill group removed"
+      firstField="name"
+      newEntry={newSkillGroup}
+    >
+      {({ index, actions }) => <SkillGroupEditor index={index} actions={actions} />}
+    </EntryList>
   );
 }
 
-type SkillGroupEditorProps = {
-  index: number;
-  itemId: string;
-  count: number;
-  onMove: (from: number, to: number) => void;
-  onRemove: () => void;
-};
+type SkillGroupEditorProps = { index: number; actions: (label: string) => ReactNode };
 
-function SkillGroupEditor({ index, itemId, count, onMove, onRemove }: SkillGroupEditorProps) {
+function SkillGroupEditor({ index, actions }: SkillGroupEditorProps) {
   const { readOnly } = useEditor();
   const name = useWatch<CvContent, `skills.${number}.name`>({ name: `skills.${index}.name` });
   const label = name.trim() || "Untitled group";
@@ -94,7 +50,7 @@ function SkillGroupEditor({ index, itemId, count, onMove, onRemove }: SkillGroup
     <div className="space-y-3">
       <div className="flex items-end gap-2">
         <FormTextField name={`skills.${index}.name`} label="Group" placeholder="e.g. Languages" className="flex-1" />
-        <ItemActions itemId={itemId} index={index} count={count} label={`skill group ${label}`} onMove={onMove} onRemove={onRemove} />
+        {actions(`skill group ${label}`)}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={inputId}>Skills in {label}</Label>

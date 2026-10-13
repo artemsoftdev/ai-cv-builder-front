@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 
 import { cn } from "@/lib/utils/cn";
+import { isComposing } from "@/lib/utils/ime";
 
 type TagInputProps = {
   id: string;
@@ -64,7 +65,7 @@ export function TagInput({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.nativeEvent.isComposing) return;
+    if (isComposing(event)) return;
     if (event.key === "Enter") {
       event.preventDefault();
       add(draft);

@@ -229,7 +229,14 @@ export function CvWorkspace({ cv, refetch, refetchFailed, autoFocus = false }: C
               >
                 <div className="space-y-4">
                   {!isDesktop && openQuestions > 0 && (
-                    <QuestionsHint count={openQuestions} onOpen={() => changeTab("questions")} />
+                    <QuestionsHint
+                      count={openQuestions}
+                      onOpen={() => {
+                        changeTab("questions");
+                        // The hint hides with its panel: move focus to the tab that was opened.
+                        document.getElementById(tabId(tabsId, "questions"))?.focus();
+                      }}
+                    />
                   )}
                   <ReviewNotice removed={cv.review?.removed ?? []} />
                   <form ref={editorRef} noValidate onSubmit={(event) => event.preventDefault()}>

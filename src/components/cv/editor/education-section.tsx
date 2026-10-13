@@ -1,82 +1,37 @@
 "use client";
 
-import { GraduationCap, Plus } from "lucide-react";
-import { motion } from "motion/react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { GraduationCap } from "lucide-react";
+import type { ReactNode } from "react";
+import { useWatch } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newEducationItem } from "@/lib/cv/new-item";
 
-import { ItemReview } from "../review/item-review";
+import { EntryHeader, EntryList } from "./entry-list";
 import { FormTextField } from "./form-text-field";
-import { ItemActions } from "./item-actions";
-import { SectionCard } from "./section-card";
-import { removeWithUndo } from "./remove-with-undo";
 
 export function EducationSection({ updated }: { updated: boolean }) {
-  const { control, getValues } = useFormContext<CvContent>();
-  const { fields, append, insert, remove, move } = useFieldArray({ control, name: "education", keyName: "key" });
-  const max = API_LIMITS.content.educationItems;
-
   return (
-    <SectionCard section="education" title="Education" icon={<GraduationCap />} count={fields.length} updated={updated}>
-      {fields.length === 0 ? (
-        <p className="text-sm text-fg-muted">No education entries yet.</p>
-      ) : (
-        <ol className="space-y-4">
-          {fields.map((field, index) => (
-            <motion.li
-              key={field.key}
-              layout="position"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              data-review-scope
-              className="rounded-lg border border-border bg-canvas/60 p-3 sm:p-4"
-            >
-              <EducationItemEditor
-                index={index}
-                itemId={field.id}
-                count={fields.length}
-                onMove={move}
-                onRemove={() =>
-                  removeWithUndo({
-                    index,
-                    items: () => getValues("education"),
-                    remove,
-                    insert: (at, item) => insert(at, item),
-                    message: "Education entry removed",
-                  })
-                }
-              />
-            </motion.li>
-          ))}
-        </ol>
-      )}
-      <Button
-        variant="secondary"
-        size="sm"
-        className="mt-4"
-        leftIcon={<Plus aria-hidden="true" className="size-4" />}
-        disabled={fields.length >= max}
-        onClick={() => append(newEducationItem(), { shouldFocus: true })}
-      >
-        Add education
-      </Button>
-    </SectionCard>
+    <EntryList
+      name="education"
+      title="Education"
+      icon={<GraduationCap />}
+      updated={updated}
+      max={API_LIMITS.content.educationItems}
+      emptyText="No education entries yet."
+      addLabel="Add education"
+      removedMessage="Education entry removed"
+      firstField="degree"
+      newEntry={newEducationItem}
+    >
+      {({ index, itemId, actions }) => <EducationItemEditor index={index} itemId={itemId} actions={actions} />}
+    </EntryList>
   );
 }
 
-type EducationItemEditorProps = {
-  index: number;
-  itemId: string;
-  count: number;
-  onMove: (from: number, to: number) => void;
-  onRemove: () => void;
-};
+type EducationItemEditorProps = { index: number; itemId: string; actions: (label: string) => ReactNode };
 
-function EducationItemEditor({ index, itemId, count, onMove, onRemove }: EducationItemEditorProps) {
+function EducationItemEditor({ index, itemId, actions }: EducationItemEditorProps) {
   const [degree, institution] = useWatch<CvContent, [`education.${number}.degree`, `education.${number}.institution`]>({
     name: [`education.${index}.degree`, `education.${index}.institution`],
   });
@@ -84,11 +39,7 @@ function EducationItemEditor({ index, itemId, count, onMove, onRemove }: Educati
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2">
-        <h3 className="min-w-0 flex-1 pt-2 text-sm font-semibold break-words text-fg">{heading}</h3>
-        <ItemReview itemId={itemId} label={`“${heading}”`} />
-        <ItemActions itemId={itemId} index={index} count={count} label={`education ${heading}`} onMove={onMove} onRemove={onRemove} />
-      </div>
+      <EntryHeader heading={heading} itemId={itemId} actions={actions(`education ${heading}`)} />
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
         <FormTextField
           name={`education.${index}.degree`}

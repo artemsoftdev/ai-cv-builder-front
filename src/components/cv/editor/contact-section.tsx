@@ -1,6 +1,7 @@
 "use client";
 
 import { Link2, Plus, Trash2, User } from "lucide-react";
+import { useRef } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -39,9 +40,19 @@ export function ContactSection({ updated }: { updated: boolean }) {
 }
 
 function LinksEditor() {
-  const { control } = useFormContext<CvContent>();
+  const { control, setFocus } = useFormContext<CvContent>();
   const { fields, append, remove } = useFieldArray({ control, name: "contact.links", keyName: "key" });
   const max = API_LIMITS.content.links;
+  const addRef = useRef<HTMLButtonElement>(null);
+
+  const removeAt = (index: number) => {
+    remove(index);
+    const remaining = fields.length - 1;
+    requestAnimationFrame(() => {
+      if (remaining > 0) setFocus(`contact.links.${Math.min(index, remaining - 1)}.label`);
+      else addRef.current?.focus();
+    });
+  };
 
   return (
     <div className="mt-6 space-y-3">
@@ -68,7 +79,7 @@ function LinksEditor() {
               variant="danger-ghost"
               size="icon"
               aria-label={`Remove link ${index + 1}`}
-              onClick={() => remove(index)}
+              onClick={() => removeAt(index)}
             >
               <Trash2 aria-hidden="true" className="size-4" />
             </Button>
@@ -76,6 +87,7 @@ function LinksEditor() {
         ))}
       </ul>
       <Button
+        ref={addRef}
         variant="secondary"
         size="sm"
         leftIcon={<Plus aria-hidden="true" className="size-4" />}

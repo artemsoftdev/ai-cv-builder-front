@@ -1,12 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useRef, type KeyboardEvent } from "react";
 import { useFieldArray, useFormContext, type UseFieldArrayInsert } from "react-hook-form";
-import type { KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { API_LIMITS, type CvContent } from "@/lib/api/types";
 import { newBullet } from "@/lib/cv/new-item";
+import { isComposing } from "@/lib/utils/ime";
 
 import { ItemReview } from "../review/item-review";
 import { FormTextField } from "./form-text-field";
@@ -15,7 +16,8 @@ import { ItemActions } from "./item-actions";
 type ExperienceIndex = number;
 
 export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
-  const { control } = useFormContext<CvContent>();
+  const { control, setFocus } = useFormContext<CvContent>();
+  const addRef = useRef<HTMLButtonElement>(null);
   const { fields, append, insert, remove, move } = useFieldArray({
     control,
     name: `experience.${itemIndex}.bullets`,
@@ -23,6 +25,16 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
   });
   const max = API_LIMITS.content.bulletsPerItem;
   const full = fields.length >= max;
+
+  const removeAt = (index: number) => {
+    remove(index);
+    // The removed bullet took the focus with it: move to its neighbour, or to "Add".
+    const remaining = fields.length - 1;
+    requestAnimationFrame(() => {
+      if (remaining > 0) setFocus(`experience.${itemIndex}.bullets.${Math.min(index, remaining - 1)}.text`);
+      else addRef.current?.focus();
+    });
+  };
 
   return (
     <div className="space-y-2">
@@ -50,7 +62,7 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
                   count={fields.length}
                   label={`highlight ${index + 1}`}
                   onMove={move}
-                  onRemove={() => remove(index)}
+                  onRemove={() => removeAt(index)}
                 />
               </div>
             </li>
@@ -58,6 +70,7 @@ export function BulletList({ itemIndex }: { itemIndex: ExperienceIndex }) {
         </ul>
       )}
       <Button
+        ref={addRef}
         variant="ghost"
         size="sm"
         leftIcon={<Plus aria-hidden="true" className="size-4" />}
@@ -78,7 +91,7 @@ function onBulletKeyDown(
   full: boolean,
   insert: UseFieldArrayInsert<CvContent, `experience.${number}.bullets`>,
 ) {
-  if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+  if (event.key !== "Enter" || event.shiftKey || isComposing(event)) return;
   event.preventDefault();
   if (!full) insert(index + 1, newBullet(), { shouldFocus: true });
 }

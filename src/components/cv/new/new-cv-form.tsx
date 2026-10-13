@@ -20,6 +20,7 @@ import { API_LIMITS } from "@/lib/api/types";
 import { applyServerError, SERVER_ERROR } from "@/lib/forms/apply-server-error";
 import { useCreateCv } from "@/lib/query/cv-hooks";
 import { cn } from "@/lib/utils/cn";
+import { formatFileSize } from "@/lib/utils/format";
 import {
   newCvSchema,
   sourceTextLength,
@@ -45,7 +46,10 @@ const EXAMPLE_ROLES = [
 
 function showCreateError(error: unknown, source: SourceMode, setError: UseFormSetError<NewCvValues>): void {
   if (isApiError(error, "FILE_TOO_LARGE")) {
-    setError("file", { type: "server", message: "This PDF is larger than 5 MB. Try a smaller export or paste the text instead." });
+    setError("file", {
+      type: "server",
+      message: `This PDF is larger than ${formatFileSize(API_LIMITS.pdf.maxBytes)}. Try a smaller export or paste the text instead.`,
+    });
   } else if (isApiError(error, "UNSUPPORTED_FILE")) {
     setError("file", {
       type: "server",
