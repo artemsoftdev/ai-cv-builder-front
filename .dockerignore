@@ -18,6 +18,8 @@ next-env.d.ts
 npm-debug.log*
 
 # Docs and tooling that the build does not read
+e2e
+playwright.config.ts
 Dockerfile
 .dockerignore
 README.md
